@@ -68,6 +68,7 @@ section { padding-block: 32px; border-bottom: 1px solid var(--rule); }
 .m-built { fill: var(--k-built); }
 .m-owner { fill: var(--k-owner); }
 .m-freed { fill: url(#pat-hatch); stroke: var(--k-freed); stroke-width: 1; }
+.m-reverse { fill: url(#pat-cross); stroke: var(--k-owner); stroke-width: 1; stroke-dasharray: 2 2; }
 .m-permit { fill: none; stroke: var(--k-permit); stroke-width: 1.25; stroke-dasharray: 1.5 2; }
 .m-need { fill: none; stroke: var(--k-need); stroke-width: 1; }
 .waffle-outline { fill: none; stroke: var(--k-need); stroke-width: 1.5; }

@@ -1,4 +1,19 @@
-# Berlin vs Copenhagen: animated district map
+# Pages in this folder
+
+- `die-luecke.html` — „Berlin hat Platz gemacht. Wo?", a two-part interactive on
+  Berlin's housing gap and the levers proposed to close it. See `docs/BUILD.md` for the
+  stack (vanilla JS + D3, no bundler), how to regenerate
+  (`uv run python src/build_page.py`) and how to run the tests
+  (`uv run python -m pytest -q` for the pipeline/build/number-audit tests,
+  `uv run python tests/browser_test.py` for the Playwright end-to-end check). Data
+  pipeline: `uv run python src/panel.py && uv run python src/levers.py` writes
+  `data/processed/berlin_panel.csv` and `data/processed/levers.json`, which
+  `src/build_page.py` inlines into the page along with `src/page/*`. Design doc:
+  `docs/die-luecke-design.md`; number sourcing: `docs/research/consolidated_findings.md`
+  and `docs/research/verification_report.md`.
+- `index.html` — the Berlin vs Copenhagen animated district map, described below.
+
+## Berlin vs Copenhagen: animated district map
 
 `index.html` in this folder is a self-contained static page (Plotly.js loaded
 from a CDN; no server, no API keys, no build step) showing two choropleth

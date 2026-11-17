@@ -63,14 +63,39 @@ dotted/thin outlines carry the other kinds, so no kind relies on colour alone.
 ## Regenerate and test
 
 ```sh
-uv run python src/build_page.py          # writes docs/die-luecke.html
-uv run python -m pytest -q               # build smoke test
+uv run python src/build_page.py                       # writes docs/die-luecke.html
+uv run python -m pytest -q                             # pipeline + build + number-audit tests
+uv run python tests/browser_test.py                    # Playwright end-to-end check (needs a server; see below)
 ```
+
+`tests/browser_test.py` expects `docs/die-luecke.html` served at
+`http://localhost:8765/die-luecke.html` (e.g. `python -m http.server 8765 --directory docs`
+in another shell). It drives both rounds of Part A, both dials, the Part B waffle and the
+Vergesellschaften panel with Playwright (`uv add --dev playwright` +
+`uv run playwright install chromium` once), and asserts: formatted reveal numbers, the
+114 % overlap caveat verbatim, the 137.000 = 41.000+77.000+19.000 bridge, that moving a
+dial changes Part B's outline, that the Vergabe axis never feeds `#pb-total`, that S/I
+numbers carry a tag badge, no horizontal scroll at 375 px, a working dark-mode toggle,
+zero console errors (favicon excluded) and no network calls outside the allowed CDN
+hosts. `tests/test_numbers.py` recomputes every printed figure from
+`data/processed/levers.json`, the rendered page's inlined `window.DATA`, and
+`docs/research/consolidated_findings.md` / `sonnet1_figures.csv`; see
+`docs/research/verification_report.md` for the full number-by-number audit and the gate
+checklist (handoff §7).
 
 The builder warns and inlines empty placeholders when the processed data files are missing.
 
 ## Known gaps
 
-- Part A and Part B are placeholders until the UI agents fill `partA.js` and `partB.js`.
 - No map yet (design §4 "Part 1 maps"); geometry would need inlining as TopoJSON.
 - No table view for screen readers yet.
+- The Part B waffle's column count is responsive
+  (`cols = max(20, floor(containerWidth / 9))`, redrawn on a debounced resize) rather
+  than the design's literal "10 per row", to avoid an excessive vertical scroll on a
+  phone (the fixed 10-column layout gave ~207 rows for the 2,069-square stock). At
+  375 px this yields 38 columns and ~7 px cells, slightly under the ~8–9 px a
+  back-of-envelope target would suggest, because the 16 px page gutters and the 2 px
+  inter-cell gap eat more of the available width than a naive estimate assumes.
+- Part 1's three caveats render as the last section of Part A (after the Bezirk chart
+  and the two dials), not immediately under the Round 1/2 charts; see
+  `docs/research/verification_report.md` §3 (Gate 2) for the reasoning.

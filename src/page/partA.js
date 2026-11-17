@@ -169,8 +169,11 @@
     function identityHtml(identity) {
       var d = identity.dwellings, ppH = identity.persons_per_household;
       var persons = Math.round(d.value * ppH.value);
-      return '<p class="dl-identity"><span class="dl-formula">' + esc(identity.formula) + ' Haushalte</span> × ' +
-        fmt(ppH.value, 2) + " = " + fmt(persons) + " Menschen (" + esc(identity.label) + ")" +
+      var formulaFmt = String(identity.formula)
+        .replace(/\d+/g, function (m) { return fmt(parseInt(m, 10)); })
+        .replace(/ - /g, " − ");
+      return '<p class="dl-identity"><span class="dl-formula">' + esc(formulaFmt) + ' Haushalte</span> × ' +
+        fmt(ppH.value, 2) + " ≈ " + fmt(persons) + " Menschen (" + esc(identity.label) + ")" +
         tagBadge(d.tag) + "</p>";
     }
 

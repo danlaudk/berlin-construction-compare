@@ -77,6 +77,7 @@ section { padding-block: 32px; border-bottom: 1px solid var(--rule); }
 .m-built { fill: var(--k-built); }
 .m-owner { fill: var(--k-owner); }
 .m-freed { fill: url(#pat-hatch); stroke: var(--k-freed); stroke-width: 1; }
+.m-reverse { fill: url(#pat-cross); stroke: var(--k-owner); stroke-width: 1; stroke-dasharray: 2 2; }
 .m-permit { fill: none; stroke: var(--k-permit); stroke-width: 1.25; stroke-dasharray: 1.5 2; }
 .m-need { fill: none; stroke: var(--k-need); stroke-width: 1; }
 .waffle-outline { fill: none; stroke: var(--k-need); stroke-width: 1.5; }
@@ -227,6 +228,10 @@ section { padding-block: 32px; border-bottom: 1px solid var(--rule); }
       <rect width="4" height="4" fill="var(--surface)"></rect>
       <rect width="1.5" height="4" fill="var(--k-stock)"></rect>
     </pattern>
+    <pattern id="pat-cross" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+      <rect width="6" height="6" fill="var(--surface)"></rect>
+      <rect width="6" height="1.5" fill="var(--k-owner)"></rect>
+    </pattern>
   </defs>
 </svg>
 <header class="masthead">
@@ -241,6 +246,7 @@ section { padding-block: 32px; border-bottom: 1px solid var(--rule); }
     <li><svg width="14" height="14"><rect class="m-built" x="1" y="1" width="12" height="12" rx="2"></rect></svg>Neu gebaut</li>
     <li><svg width="14" height="14"><rect class="m-owner" x="1" y="1" width="12" height="12" rx="2"></rect></svg>Eigentümerwechsel</li>
     <li><svg width="14" height="14"><rect class="m-freed" x="1" y="1" width="12" height="12" rx="2"></rect></svg>Bestand zurückgeholt</li>
+    <li><svg width="14" height="14"><rect class="m-reverse" x="1" y="1" width="12" height="12" rx="2"></rect></svg>Bindung läuft aus</li>
     <li><svg width="14" height="14"><rect class="m-permit" x="1.5" y="1.5" width="11" height="11" rx="2"></rect></svg>genehmigt, nicht gebaut</li>
     <li><svg width="14" height="14"><rect class="m-need" x="1.5" y="1.5" width="11" height="11" rx="2"></rect></svg>Bedarf</li>
     <li class="legend-scale">1 Quadrat = 1.000 Wohnungen</li>
@@ -317,7 +323,7 @@ window.DATA = {"panel":[{"bezirk":"Berlin","year":2011,"completions":4491.0,"pop
   }
   document.addEventListener("pointerdown", (ev) => { if (!ev.target.closest("[data-tip]")) hideTip(); });
 
-  const KINDS = ["stock", "built", "owner", "freed", "permit"];
+  const KINDS = ["stock", "built", "owner", "freed", "permit", "reverse"];
 
   /** waffle(container, {squares:[{n, kind, info?}], outlines:[{n, label, strength:'strong'|'weak'}], perSquare=1000, cols=10, size?})
       kinds: stock | built | owner | freed | permit. n is in dwellings; squares = round(n/perSquare).
@@ -647,8 +653,11 @@ window.DATA = {"panel":[{"bezirk":"Berlin","year":2011,"completions":4491.0,"pop
     function identityHtml(identity) {
       var d = identity.dwellings, ppH = identity.persons_per_household;
       var persons = Math.round(d.value * ppH.value);
-      return '<p class="dl-identity"><span class="dl-formula">' + esc(identity.formula) + ' Haushalte</span> × ' +
-        fmt(ppH.value, 2) + " = " + fmt(persons) + " Menschen (" + esc(identity.label) + ")" +
+      var formulaFmt = String(identity.formula)
+        .replace(/\d+/g, function (m) { return fmt(parseInt(m, 10)); })
+        .replace(/ - /g, " − ");
+      return '<p class="dl-identity"><span class="dl-formula">' + esc(formulaFmt) + ' Haushalte</span> × ' +
+        fmt(ppH.value, 2) + " ≈ " + fmt(persons) + " Menschen (" + esc(identity.label) + ")" +
         tagBadge(d.tag) + "</p>";
     }
 
@@ -924,7 +933,7 @@ window.DATA = {"panel":[{"bezirk":"Berlin","year":2011,"completions":4491.0,"pop
     }
     function sozialbindungenSquares() {
       const f = L.sozialbindungen.felder; // -46
-      return [{ n: Math.abs(v(f)) * 1000, kind: "owner", info: info(f, { label: "Sozialbindungen laufen aus (reverse)" }), reverse: true }];
+      return [{ n: Math.abs(v(f)) * 1000, kind: "reverse", info: info(f, { label: "Sozialbindungen laufen aus (recolour reverse)" }), reverse: true }];
     }
     function vergesellschaftenSquares() {
       const u = V.umfang && V.umfang.value;
@@ -948,10 +957,10 @@ window.DATA = {"panel":[{"bezirk":"Berlin","year":2011,"completions":4491.0,"pop
 
     function buildSquares() {
       const stockTotal = v(pb.stock_squares) * 1000;
-      let recolourOwner = 0, recolourFreed = 0, built = 0, permit = 0;
+      let recolourOwner = 0, recolourFreed = 0, recolourReverse = 0, built = 0, permit = 0;
       let counted = 0, allPulled = 0;
       const extra = []; // built + permit cells, appended beyond stock
-      const recolour = []; // owner + freed cells, drawn from within stock
+      const recolour = []; // owner + freed + reverse cells, drawn from within stock
 
       LEVER_ORDER.forEach((lv) => {
         if (!state.pulled[lv.key]) return;
@@ -962,17 +971,18 @@ window.DATA = {"panel":[{"bezirk":"Berlin","year":2011,"completions":4491.0,"pop
           else if (s.kind === "permit") { permit += s.n; extra.push(s); }
           else if (s.kind === "owner") { recolourOwner += s.n; recolour.push(s); }
           else if (s.kind === "freed") { recolourFreed += s.n; recolour.push(s); }
+          else if (s.kind === "reverse") { recolourReverse += s.n; recolour.push(s); }
         });
       });
 
-      const recolourTotal = Math.min(recolourOwner + recolourFreed, stockTotal);
+      const recolourTotal = Math.min(recolourOwner + recolourFreed + recolourReverse, stockTotal);
       const stockRemain = Math.max(stockTotal - recolourTotal, 0);
       const squares = [
         ...recolour,
         { n: stockRemain, kind: "stock" },
         ...extra,
       ];
-      return { squares, counted, allPulled };
+      return { squares, counted, allPulled, freedN: recolourFreed, ownerN: recolourOwner, reverseN: recolourReverse, permitN: permit };
     }
 
     function outlineSquares() {
@@ -982,17 +992,39 @@ window.DATA = {"panel":[{"bezirk":"Berlin","year":2011,"completions":4491.0,"pop
       ];
     }
 
-    function renderWaffle() {
-      const { squares, counted, allPulled } = buildSquares();
-      if (!waffleHandle) {
-        waffleHandle = DL.waffle(waffleEl, { squares, outlines: outlineSquares(), perSquare: 1000, cols: 10 });
+    function waffleCols() {
+      const w = waffleEl.clientWidth || 320;
+      return Math.max(20, Math.floor(w / 9));
+    }
+
+    function renderWaffle(forceNewLayout) {
+      const { squares, counted, freedN, ownerN, reverseN, permitN } = buildSquares();
+      const cols = waffleCols();
+      if (!waffleHandle || forceNewLayout || waffleHandle.cols !== cols) {
+        waffleHandle = DL.waffle(waffleEl, { squares, outlines: outlineSquares(), perSquare: 1000, cols });
+        waffleHandle.cols = cols;
       } else {
         waffleHandle.update(squares);
       }
-      document.getElementById("pb-total").textContent = `${DL.fmt(Math.round(counted / 1000))} von ${DL.fmt(Math.round(allPulled / 1000))} Feldern`;
+      {
+        const k = (x) => DL.fmt(Math.round(x / 1000));
+        const parts = [];
+        if (freedN) parts.push(`${k(freedN)} zurückgeholt`);
+        if (ownerN) parts.push(`${k(ownerN)} umgefärbt`);
+        if (reverseN) parts.push(`${k(reverseN)} Bindungen laufen aus`);
+        if (permitN) parts.push(`${k(permitN)} genehmigt`);
+        document.getElementById("pb-total").textContent = `${k(counted)} volle Felder` + (parts.length ? ` (dazu ${parts.join(", ")})` : "");
+      }
       document.getElementById("pb-outline-need").textContent = `${DL.fmt(Math.round(state.need / 1000))} Felder (Bedarf)`;
       document.getElementById("pb-outline-senate").textContent = `${DL.fmt(Math.round(v(pb.senate_need) / 1000))} Felder (Senat)`;
     }
+
+    // Redraw the waffle (new column count) on resize, debounced.
+    let resizeTimer = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => renderWaffle(true), 150);
+    });
 
     // ---- lever cards --------------------------------------------------
     const cardsEl = document.getElementById("pb-cards");
@@ -1024,14 +1056,15 @@ window.DATA = {"panel":[{"bezirk":"Berlin","year":2011,"completions":4491.0,"pop
     }
 
     function tempoText(lv) {
+      const F = L.ferienwohnungen, Z = L.zweckentfremdung_gesamt, U = L.ueberhang;
       switch (lv.key) {
-        case "neu_bauen": return "beobachtet pro Jahr";
-        case "ueberhang": return "Stand 31.12.2025 (dotted: nicht gebaut)";
-        case "leerstand": return "CBRE-empirica 2025 / Zensus 2022";
-        case "ferienwohnungen": return "Stand 19.09.2026";
-        case "zweckentfremdung_gesamt": return "2014–2025-06-30";
-        case "aufstocken_umnutzen": return "Schätzung, keine Bautätigkeit gemessen";
-        case "sozialbindungen": return "laufen bis 2034 aus";
+        case "neu_bauen": return `${DL.fmt(v(L.neu_bauen.tempo_2025), 1)} Tsd./Jahr (2025), ${DL.fmt(v(L.neu_bauen.tempo_2019), 1)} Tsd./Jahr (2019), LWU ${DL.fmt(v(L.neu_bauen.lwu), 1)} Tsd./Jahr`;
+        case "ueberhang": return `einmalig; ${DL.fmt(v(U.unter_dach), 1)} unter Dach, ${DL.fmt(v(U.rohbau), 1)} Rohbau, ${DL.fmt(v(U.nicht_begonnen), 1)} nicht begonnen (Tsd., 31.12.2025)`;
+        case "leerstand": return "kein Tempo gemessen; marktaktiver Leerstand 0,3 % (2025)";
+        case "ferienwohnungen": return `≈ ${DL.fmt(v(F.per_year), 1)} Tsd./Jahr zurückgeführt (${DL.fmt(v(F.returned_since_2014), 1)} Tsd. seit 2014)`;
+        case "zweckentfremdung_gesamt": return `≈ ${DL.fmt(v(Z.felder) / 11.5, 1)} Tsd./Jahr (${DL.fmt(v(Z.felder), 1)} Tsd. 2014 – Mitte 2025)`;
+        case "aufstocken_umnutzen": return "Potenzialschätzung, keine Bautätigkeit gemessen";
+        case "sozialbindungen": return "≈ 4 Tsd./Jahr laufen aus, bis 2034";
         case "vergesellschaften": return "einmalig, Stichtag 31.12.2021";
         default: return "";
       }
@@ -1225,7 +1258,7 @@ window.DATA = {"panel":[{"bezirk":"Berlin","year":2011,"completions":4491.0,"pop
       el.innerHTML = "";
       const lo = v(V.vergabe.net_flow_low), hi = v(V.vergabe.net_flow_high), campaign = v(V.vergabe.campaign_gross_quote);
       const width = Math.max(el.clientWidth || 300, 240), height = 56, m = { l: 8, r: 8 };
-      const max = Math.max(campaign, hi) * 1.1;
+      const max = Math.ceil(Math.max(campaign, hi) * 1.1 / 1000) * 1000;
       const x = d3.scaleLinear().domain([0, max]).range([m.l, width - m.r]);
       const svg = d3.select(el).append("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%");
       svg.append("line").attr("x1", m.l).attr("x2", width - m.r).attr("y1", 40).attr("y2", 40).attr("stroke", "var(--rule)");
@@ -1233,7 +1266,11 @@ window.DATA = {"panel":[{"bezirk":"Berlin","year":2011,"completions":4491.0,"pop
         .attr("fill", "var(--k-owner)").attr("rx", 2).attr("data-tip", "");
       DL.tooltip(svg.select("rect").node(), { value: `${DL.fmt(lo)}–${DL.fmt(hi)}`, unit: "Wohnungen/Jahr (netto)", source: V.vergabe.net_flow_low.source, tag: "I" });
       svg.append("line").attr("x1", x(campaign)).attr("x2", x(campaign)).attr("y1", 24).attr("y2", 46).attr("stroke", "var(--ink-3)").attr("stroke-dasharray", "2 2");
-      svg.append("text").attr("x", x(campaign)).attr("y", 18).attr("text-anchor", "middle").attr("class", "chart-label").text(`Initiative: ${DL.fmt(campaign)}`);
+      const campaignLabelX = x(campaign);
+      const nearRightEdge = campaignLabelX > width - m.r - 44;
+      svg.append("text").attr("x", nearRightEdge ? width - m.r : campaignLabelX)
+        .attr("y", 18).attr("text-anchor", nearRightEdge ? "end" : "middle")
+        .attr("class", "chart-label").text(`Initiative: ${DL.fmt(campaign)}`);
       svg.append("text").attr("x", m.l).attr("y", 54).attr("class", "chart-label").text("0");
       svg.append("text").attr("x", width - m.r).attr("y", 54).attr("text-anchor", "end").attr("class", "chart-label").text(DL.fmt(max));
     }

@@ -50,7 +50,7 @@
   }
   document.addEventListener("pointerdown", (ev) => { if (!ev.target.closest("[data-tip]")) hideTip(); });
 
-  const KINDS = ["stock", "built", "owner", "freed", "permit"];
+  const KINDS = ["stock", "built", "owner", "freed", "permit", "reverse"];
 
   /** waffle(container, {squares:[{n, kind, info?}], outlines:[{n, label, strength:'strong'|'weak'}], perSquare=1000, cols=10, size?})
       kinds: stock | built | owner | freed | permit. n is in dwellings; squares = round(n/perSquare).
