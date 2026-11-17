@@ -1,0 +1,1267 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Berlins Wohnungslücke</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+:root {
+  --surface: #fbfbf9;
+  --surface-2: #f1f1ed;
+  --ink: #111214;
+  --ink-2: #4f5054;
+  --ink-3: #85868a;
+  --rule: #dcdcd6;
+  --k-stock: #c9cac4;   /* Bestand, neutral */
+  --k-built: #2a78d6;   /* Neu gebaut, slot 1 blue */
+  --k-owner: #eb6834;   /* Eigentümerwechsel, slot 2 orange */
+  --k-freed: #1baf7a;   /* Bestand zurückgeholt, slot 3 aqua (hatched) */
+  --k-permit: #4f5054;  /* dotted outline */
+  --k-need: #111214;    /* thin outline */
+  --tag-s: #b35a00;
+  --tag-i: #6a3fb0;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface: #18191b; --surface-2: #232427;
+    --ink: #f4f4f2; --ink-2: #c3c2b7; --ink-3: #8c8c86; --rule: #36373a;
+    --k-stock: #45464a; --k-built: #3987e5; --k-owner: #d95926; --k-freed: #199e70;
+    --k-permit: #c3c2b7; --k-need: #f4f4f2; --tag-s: #f0a050; --tag-i: #b39cf0;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #18191b; --surface-2: #232427;
+  --ink: #f4f4f2; --ink-2: #c3c2b7; --ink-3: #8c8c86; --rule: #36373a;
+  --k-stock: #45464a; --k-built: #3987e5; --k-owner: #d95926; --k-freed: #199e70;
+  --k-permit: #c3c2b7; --k-need: #f4f4f2; --tag-s: #f0a050; --tag-i: #b39cf0;
+}
+* { box-sizing: border-box; }
+html { background: var(--surface); }
+body {
+  margin: 0; background: var(--surface); color: var(--ink);
+  font: 16px/1.55 var(--font-body);
+  padding-inline: 16px; padding-block: 0 48px;
+  max-width: 1080px; margin-inline: auto;
+}
+h1, h2 { font-family: var(--font-display); font-weight: 600; text-wrap: balance; line-height: 1.15; }
+h1 { font-size: clamp(1.75rem, 6vw, 2.75rem); margin: 0; }
+h2 { font-size: 1.5rem; margin: 0 0 .5rem; }
+.masthead { padding-block: 24px 12px; }
+.masthead-row { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; }
+.dek { color: var(--ink-2); max-width: 62ch; margin: .5rem 0 0; }
+.theme-toggle {
+  font: 13px var(--font-body); color: var(--ink); background: var(--surface-2);
+  border: 1px solid var(--rule); border-radius: 6px; padding: 6px 10px; cursor: pointer; flex: none;
+}
+.theme-toggle:focus-visible, button:focus-visible { outline: 2px solid var(--k-built); outline-offset: 2px; }
+.legend {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--surface); border-block: 1px solid var(--rule); padding-block: 8px;
+  font-size: 13px; color: var(--ink-2);
+}
+.legend ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.legend li { display: flex; align-items: center; gap: 6px; }
+.legend svg { flex: none; }
+.legend-scale { font-family: var(--font-mono); font-size: 12px; color: var(--ink); }
+section { padding-block: 32px; border-bottom: 1px solid var(--rule); }
+.placeholder { color: var(--ink-3); max-width: 62ch; }
+/* mark kinds, shared by legend and waffle */
+.m-stock { fill: var(--k-stock); }
+.m-built { fill: var(--k-built); }
+.m-owner { fill: var(--k-owner); }
+.m-freed { fill: url(#pat-hatch); stroke: var(--k-freed); stroke-width: 1; }
+.m-permit { fill: none; stroke: var(--k-permit); stroke-width: 1.25; stroke-dasharray: 1.5 2; }
+.m-need { fill: none; stroke: var(--k-need); stroke-width: 1; }
+.waffle-outline { fill: none; stroke: var(--k-need); stroke-width: 1.5; }
+.waffle-outline.weak { stroke-dasharray: 4 3; }
+.waffle-label, .axis text, .chart-label { fill: var(--ink-2); font: 12px var(--font-body); }
+.axis path, .axis line { stroke: var(--rule); }
+.grid line { stroke: var(--rule); stroke-opacity: .6; }
+.line { fill: none; stroke-width: 2; }
+.gap-area { opacity: .18; }
+.chart-wrap { overflow-x: auto; }
+.sm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+.sm-cell h3 { font: 600 13px var(--font-body); margin: 0 0 4px; }
+.tag { font: 600 11px var(--font-mono); border-radius: 3px; padding: 0 4px; margin-left: 4px; vertical-align: 1px; }
+.tag-V { color: var(--ink-3); border: 0; }
+.tag-S { color: var(--tag-s); border: 1px solid var(--tag-s); }
+.tag-I { color: var(--tag-i); border: 1px dashed var(--tag-i); }
+.tooltip {
+  position: fixed; z-index: 20; pointer-events: none; max-width: 280px;
+  background: var(--surface-2); color: var(--ink); border: 1px solid var(--rule);
+  border-radius: 6px; padding: 8px 10px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.15);
+}
+.tooltip .tt-value { font: 600 15px var(--font-body); font-variant-numeric: tabular-nums; }
+.tooltip .tt-meta { color: var(--ink-2); font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* === Part A === */
+.dl-rounds { display: flex; flex-direction: column; gap: 32px; }
+.dl-round h3 { font-size: 1.15rem; margin: 0 0 .25rem; }
+.dl-frame { color: var(--ink-2); margin: 0 0 .5rem; }
+.dl-budget { font-size: 15px; margin: 0 0 .75rem; }
+.dl-budget strong { font-variant-numeric: tabular-nums; }
+.dl-taps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.dl-tap { border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; background: var(--surface-2); }
+.dl-tap-label { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.dl-tap-hint { display: block; font-weight: 400; color: var(--ink-3); font-size: 12px; }
+.dl-tap-controls { display: flex; align-items: center; gap: 8px; }
+.dl-step-minus, .dl-step-plus {
+  width: 32px; height: 32px; flex: none; border-radius: 6px; border: 1px solid var(--rule);
+  background: var(--surface); color: var(--ink); font-size: 18px; line-height: 1; cursor: pointer;
+}
+.dl-tap-input {
+  width: 100%; max-width: 160px; font: 14px/1.4 var(--font-mono); padding: 6px 8px;
+  border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); color: var(--ink);
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.dl-tap-reveal { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--rule); font-size: 13px; }
+.dl-tap-guess { color: var(--ink-2); margin-bottom: 2px; }
+.dl-tap-note { font-weight: 600; }
+.dl-tap-extra { margin-top: 4px; color: var(--ink-2); }
+.dl-commit {
+  font: 600 14px var(--font-body); padding: 8px 16px; border-radius: 6px; border: 1px solid var(--k-built);
+  background: var(--k-built); color: #fff; cursor: pointer;
+}
+.dl-commit:disabled { opacity: .4; cursor: not-allowed; background: var(--surface-2); color: var(--ink-3); border-color: var(--rule); }
+.dl-ledger { margin-top: 14px; padding: 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface-2); font-size: 14px; }
+.dl-formula { font-family: var(--font-mono); }
+.dl-overlap { margin: 0; }
+.dl-bezirk, .dl-dials, .dl-caveats { margin-top: 8px; }
+.dl-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 12px; }
+.dl-controls select {
+  font: 14px var(--font-body); padding: 6px 8px; border-radius: 6px; border: 1px solid var(--rule);
+  background: var(--surface); color: var(--ink);
+}
+.dl-basis-toggle { border: 0; margin: 0; padding: 0; display: flex; gap: 12px; align-items: center; }
+.dl-basis-toggle legend { font-size: 12px; color: var(--ink-3); padding: 0; }
+.dl-basis-toggle label { font-size: 13px; display: flex; align-items: center; gap: 4px; }
+.dl-chart-note { font-size: 12px; color: var(--ink-3); margin: 4px 0 0; }
+.dl-dial { margin-bottom: 14px; }
+.dl-dial label { display: block; font-size: 14px; margin-bottom: 4px; }
+.dl-dial output { font-weight: 600; font-variant-numeric: tabular-nums; }
+.dl-dial input[type="range"] { width: 100%; accent-color: var(--k-built); }
+#dial-reset {
+  font: 13px var(--font-body); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--rule);
+  background: var(--surface-2); color: var(--ink); cursor: pointer; margin-bottom: 14px;
+}
+.dl-bridge-text { max-width: 62ch; color: var(--ink-2); }
+.dl-bridge-components { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 10px 0; }
+.dl-bridge-components div { border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; background: var(--surface-2); }
+.dl-bridge-components dt { font-size: 12px; color: var(--ink-3); margin: 0; }
+.dl-bridge-components dd { margin: 2px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dl-bridge-total { border-color: var(--k-built) !important; }
+.dl-bridge-excludes { font-size: 12px; color: var(--ink-3); }
+.dl-caveats ol { padding-left: 1.2em; color: var(--ink-2); font-size: 14px; }
+.dl-caveats li { margin-bottom: 6px; }
+@media (max-width: 480px) {
+  .dl-tap-input { max-width: 100px; }
+}
+
+/* === Part B === */
+.pb-waffle-wrap { margin-bottom: 20px; }
+.pb-waffle { max-width: 480px; }
+.pb-totals { font-size: 14px; margin: 8px 0 2px; }
+.pb-totals strong { font-variant-numeric: tabular-nums; }
+.pb-note { font-size: 12px; color: var(--ink-3); max-width: 62ch; margin: 2px 0; }
+.pb-meta { font-size: 12px; color: var(--ink-3); }
+.pb-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 20px; }
+.pb-card {
+  border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; background: var(--surface-2);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.pb-card-reverse { border-color: var(--k-owner); }
+.pb-card-marker { opacity: .85; }
+.pb-card h4 { margin: 0; font: 600 15px var(--font-body); }
+.pb-fields { margin: 0; display: grid; grid-template-columns: 1fr; gap: 4px 10px; font-size: 13px; }
+.pb-fields > div { display: flex; justify-content: space-between; gap: 8px; border-top: 1px dashed var(--rule); padding-top: 4px; }
+.pb-fields dt { color: var(--ink-3); flex: none; font-size: 12px; }
+.pb-fields dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.pb-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.pb-chip {
+  font: 12px var(--font-body); padding: 5px 9px; border-radius: 999px; border: 1px solid var(--rule);
+  background: var(--surface); color: var(--ink); cursor: pointer;
+}
+.pb-chip[aria-pressed="true"] { background: var(--k-built); color: #fff; border-color: var(--k-built); }
+.pb-pull {
+  font: 600 13px var(--font-body); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--k-built);
+  background: var(--surface); color: var(--k-built); cursor: pointer; align-self: flex-start;
+}
+.pb-pull[aria-pressed="true"] { background: var(--k-built); color: #fff; }
+.pb-panel { margin-top: 28px; }
+.pb-verg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.pb-verg-field {
+  border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; background: var(--surface-2);
+}
+.pb-verg-field h4 { margin: 0 0 6px; font: 600 14px var(--font-body); display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pb-axis-note { font-size: 11px; font-weight: 400; color: var(--ink-3); }
+.pb-vergabe-axis { margin-bottom: 6px; }
+.pb-slider-label { display: block; font-size: 12px; color: var(--ink-3); margin-top: 8px; }
+.pb-verg-field input[type="range"] { width: 100%; accent-color: var(--k-owner); }
+.pb-verg-field output { font-weight: 600; font-variant-numeric: tabular-nums; }
+.pb-quote { font-size: 13px; margin: 4px 0; }
+.pb-verg-quotes { grid-column: 1 / -1; }
+.pb-secondary { margin-top: 20px; }
+.pb-secondary-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+@media (max-width: 480px) {
+  .pb-cards, .pb-verg-grid { grid-template-columns: 1fr; }
+}
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="pat-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="var(--surface)"></rect>
+      <rect width="3" height="6" fill="var(--k-freed)"></rect>
+    </pattern>
+    <pattern id="pat-estimated" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(135)">
+      <rect width="4" height="4" fill="var(--surface)"></rect>
+      <rect width="1.5" height="4" fill="var(--k-stock)"></rect>
+    </pattern>
+  </defs>
+</svg>
+<header class="masthead">
+  <div class="masthead-row">
+    <h1>Berlin hat Platz gemacht. Wo?</h1>
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Farbschema wechseln">Dunkel</button>
+  </div>
+  <p class="dek">Wie viele Wohnungen fehlen in Berlin, und was würde welcher Hebel daran ändern?</p>
+</header>
+<aside id="legend" class="legend" aria-label="Legende">
+  <ul>
+    <li><svg width="14" height="14"><rect class="m-built" x="1" y="1" width="12" height="12" rx="2"></rect></svg>Neu gebaut</li>
+    <li><svg width="14" height="14"><rect class="m-owner" x="1" y="1" width="12" height="12" rx="2"></rect></svg>Eigentümerwechsel</li>
+    <li><svg width="14" height="14"><rect class="m-freed" x="1" y="1" width="12" height="12" rx="2"></rect></svg>Bestand zurückgeholt</li>
+    <li><svg width="14" height="14"><rect class="m-permit" x="1.5" y="1.5" width="11" height="11" rx="2"></rect></svg>genehmigt, nicht gebaut</li>
+    <li><svg width="14" height="14"><rect class="m-need" x="1.5" y="1.5" width="11" height="11" rx="2"></rect></svg>Bedarf</li>
+    <li class="legend-scale">1 Quadrat = 1.000 Wohnungen</li>
+  </ul>
+</aside>
+<main>
+  <section id="part-a" aria-labelledby="part-a-h">
+    <h2 id="part-a-h">Teil 1: Die Wohnungsbilanz</h2>
+    <p class="placeholder">Menschen links, Wohnungen rechts, 2011 bis 2025, je Bezirk. Wird gebaut.</p>
+    <div id="part-a-root"></div>
+  </section>
+  <section id="part-b" aria-labelledby="part-b-h">
+    <h2 id="part-b-h">Teil 2: Die Hebel</h2>
+    <p class="placeholder">Ein Quadrat je 1.000 Wohnungen. Jeder Hebel färbt, füllt oder schraffiert Quadrate. Wird gebaut.</p>
+    <div id="part-b-root"></div>
+  </section>
+</main>
+<div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+window.DATA = {"panel":[{"bezirk":"Berlin","year":2011,"completions":4491.0,"population_census_basis":3292365.0,"population_register":3427114,"estimated":"False","stock":1871782.0,"stock_basis":"census_2011","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.754},{"bezirk":"Berlin","year":2012,"completions":5417.0,"population_census_basis":3324811.2980434163,"population_register":3469621,"estimated":"True","stock":1884419.3,"stock_basis":"census_2011","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.752},{"bezirk":"Berlin","year":2013,"completions":6641.0,"population_census_basis":3362114.194199661,"population_register":3517424,"estimated":"True","stock":1897056.6,"stock_basis":"census_2011","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.752},{"bezirk":"Berlin","year":2014,"completions":8744.0,"population_census_basis":3396267.4773057844,"population_register":3562166,"estimated":"True","stock":1909693.9,"stock_basis":"census_2011","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.754},{"bezirk":"Berlin","year":2015,"completions":10722.0,"population_census_basis":3433293.2714672,"population_register":3610156,"estimated":"True","stock":1922331.2,"stock_basis":"census_2011","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.745},{"bezirk":"Berlin","year":2016,"completions":13659.0,"population_census_basis":3481921.6204745043,"population_register":3670622,"estimated":"True","stock":1934968.5,"stock_basis":"census_2011","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.797},{"bezirk":"Berlin","year":2017,"completions":15669.0,"population_census_basis":3512130.7643589387,"population_register":3711930,"estimated":"True","stock":1947605.8,"stock_basis":"census_2011","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.793},{"bezirk":"Berlin","year":2018,"completions":16706.0,"population_census_basis":3537336.4293637555,"population_register":3748148,"estimated":"True","stock":1960243.1,"stock_basis":"census_2011","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.788},{"bezirk":"Berlin","year":2019,"completions":18999.0,"population_census_basis":3548368.3121807044,"population_register":3769495,"estimated":"True","stock":1972880.4,"stock_basis":"census_2011","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.789},{"bezirk":"Berlin","year":2020,"completions":16337.0,"population_census_basis":3539692.3154387795,"population_register":3769962,"estimated":"True","stock":1985517.7,"stock_basis":"census_2011","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.789},{"bezirk":"Berlin","year":2021,"completions":15870.0,"population_census_basis":3535744.331607914,"population_register":3775480,"estimated":"True","stock":1998155.0,"stock_basis":"census_2022_gwz","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.8},{"bezirk":"Berlin","year":2022,"completions":17310.0,"population_census_basis":3596979.0,"population_register":3850809,"estimated":"False","stock":2028467.0,"stock_basis":"census_2022_gwz","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.84},{"bezirk":"Berlin","year":2023,"completions":15965.0,"population_census_basis":3637303.420620062,"population_register":3878100,"estimated":"True","stock":2043079.0,"stock_basis":"census_2022_gwz","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.85},{"bezirk":"Berlin","year":2024,"completions":15362.0,"population_census_basis":3670071.065255554,"population_register":3897145,"estimated":"True","stock":2058666.0,"stock_basis":"census_2022_gwz","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.85},{"bezirk":"Berlin","year":2025,"completions":11027.0,"population_census_basis":3700577.0,"population_register":3913644,"estimated":"False","stock":2069432.0,"stock_basis":"census_2022_gwz","households":1960354,"dwellings_zensus":2018840,"vacancy_zensus":40700,"vacancy_rate":0.02016009193398189,"hh_size":1.88},{"bezirk":"Charlottenburg-Wilmersdorf","year":2011,"completions":498.0,"population_census_basis":290741.0,"population_register":314911,"estimated":"False","stock":179054.78811770573,"stock_basis":"census_2011","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.64},{"bezirk":"Charlottenburg-Wilmersdorf","year":2012,"completions":360.0,"population_census_basis":294956.1464615673,"population_register":319289,"estimated":"True","stock":180263.6730593709,"stock_basis":"census_2011","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.64},{"bezirk":"Charlottenburg-Wilmersdorf","year":2013,"completions":410.0,"population_census_basis":298439.34844570357,"population_register":322870,"estimated":"True","stock":181472.55800103603,"stock_basis":"census_2011","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.64},{"bezirk":"Charlottenburg-Wilmersdorf","year":2014,"completions":584.0,"population_census_basis":301836.7218379608,"population_register":326354,"estimated":"True","stock":182681.44294270116,"stock_basis":"census_2011","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.67},{"bezirk":"Charlottenburg-Wilmersdorf","year":2015,"completions":382.0,"population_census_basis":305820.8873746763,"population_register":330468,"estimated":"True","stock":183890.32788436633,"stock_basis":"census_2011","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.67},{"bezirk":"Charlottenburg-Wilmersdorf","year":2016,"completions":918.0,"population_census_basis":311353.0905118542,"population_register":336249,"estimated":"True","stock":185099.2128260315,"stock_basis":"census_2011","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.67},{"bezirk":"Charlottenburg-Wilmersdorf","year":2017,"completions":846.0,"population_census_basis":313927.6835917947,"population_register":338831,"estimated":"True","stock":186308.09776769663,"stock_basis":"census_2011","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.67},{"bezirk":"Charlottenburg-Wilmersdorf","year":2018,"completions":1050.0,"population_census_basis":316425.3515259789,"population_register":341327,"estimated":"True","stock":187516.9827093618,"stock_basis":"census_2011","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.67},{"bezirk":"Charlottenburg-Wilmersdorf","year":2019,"completions":1107.0,"population_census_basis":318711.45428108296,"population_register":343592,"estimated":"True","stock":188725.86765102693,"stock_basis":"census_2011","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.7},{"bezirk":"Charlottenburg-Wilmersdorf","year":2020,"completions":1715.0,"population_census_basis":316855.916570673,"population_register":341392,"estimated":"True","stock":189934.7525926921,"stock_basis":"census_2011","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.7},{"bezirk":"Charlottenburg-Wilmersdorf","year":2021,"completions":795.0,"population_census_basis":310174.4720023209,"population_register":333998,"estimated":"True","stock":191143.63753435726,"stock_basis":"census_2022_gwz","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.7},{"bezirk":"Charlottenburg-Wilmersdorf","year":2022,"completions":1424.0,"population_census_basis":317006.0,"population_register":341155,"estimated":"False","stock":194043.28543001172,"stock_basis":"census_2022_gwz","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.7},{"bezirk":"Charlottenburg-Wilmersdorf","year":2023,"completions":884.0,"population_census_basis":320263.6189982196,"population_register":343081,"estimated":"True","stock":195441.0703023825,"stock_basis":"census_2022_gwz","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.7},{"bezirk":"Charlottenburg-Wilmersdorf","year":2024,"completions":363.0,"population_census_basis":322124.4980883553,"population_register":343500,"estimated":"True","stock":196932.12373830113,"stock_basis":"census_2022_gwz","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.76},{"bezirk":"Charlottenburg-Wilmersdorf","year":2025,"completions":801.0,"population_census_basis":323712.0,"population_register":343625,"estimated":"False","stock":197962.0,"stock_basis":"census_2022_gwz","households":187482,"dwellings_zensus":194165,"vacancy_zensus":4820,"vacancy_rate":0.024824247418432775,"hh_size":1.77},{"bezirk":"Friedrichshain-Kreuzberg","year":2011,"completions":236.0,"population_census_basis":251226.0,"population_register":265361,"estimated":"False","stock":144499.62538319692,"stock_basis":"census_2011","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.64},{"bezirk":"Friedrichshain-Kreuzberg","year":2012,"completions":246.0,"population_census_basis":253982.6062067064,"population_register":269471,"estimated":"True","stock":145475.21181145357,"stock_basis":"census_2011","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.64},{"bezirk":"Friedrichshain-Kreuzberg","year":2013,"completions":464.0,"population_census_basis":256644.55438723063,"population_register":273517,"estimated":"True","stock":146450.79823971022,"stock_basis":"census_2011","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.64},{"bezirk":"Friedrichshain-Kreuzberg","year":2014,"completions":932.0,"population_census_basis":257523.79460372162,"population_register":275691,"estimated":"True","stock":147426.38466796686,"stock_basis":"census_2011","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.71},{"bezirk":"Friedrichshain-Kreuzberg","year":2015,"completions":1837.0,"population_census_basis":258875.71337444897,"population_register":278393,"estimated":"True","stock":148401.9710962235,"stock_basis":"census_2011","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.71},{"bezirk":"Friedrichshain-Kreuzberg","year":2016,"completions":853.0,"population_census_basis":260415.93717916124,"population_register":281323,"estimated":"True","stock":149377.55752448013,"stock_basis":"census_2011","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.71},{"bezirk":"Friedrichshain-Kreuzberg","year":2017,"completions":1813.0,"population_census_basis":261674.3995378108,"population_register":283974,"estimated":"True","stock":150353.14395273678,"stock_basis":"census_2011","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.71},{"bezirk":"Friedrichshain-Kreuzberg","year":2018,"completions":1608.0,"population_census_basis":265199.1120831405,"population_register":289120,"estimated":"True","stock":151328.73038099342,"stock_basis":"census_2011","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.71},{"bezirk":"Friedrichshain-Kreuzberg","year":2019,"completions":1083.0,"population_census_basis":265137.84937869234,"population_register":290386,"estimated":"True","stock":152304.31680925007,"stock_basis":"census_2011","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.7},{"bezirk":"Friedrichshain-Kreuzberg","year":2020,"completions":1371.0,"population_census_basis":263370.9345130861,"population_register":289787,"estimated":"True","stock":153279.90323750672,"stock_basis":"census_2011","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.7},{"bezirk":"Friedrichshain-Kreuzberg","year":2021,"completions":688.0,"population_census_basis":261451.65702235745,"population_register":289014,"estimated":"True","stock":154255.48966576337,"stock_basis":"census_2022_gwz","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.7},{"bezirk":"Friedrichshain-Kreuzberg","year":2022,"completions":775.0,"population_census_basis":264032.0,"population_register":293231,"estimated":"False","stock":156595.5445677848,"stock_basis":"census_2022_gwz","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.7},{"bezirk":"Friedrichshain-Kreuzberg","year":2023,"completions":638.0,"population_census_basis":265443.53373677586,"population_register":293454,"estimated":"True","stock":157723.57578407988,"stock_basis":"census_2022_gwz","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.7},{"bezirk":"Friedrichshain-Kreuzberg","year":2024,"completions":679.0,"population_census_basis":265900.0729605578,"population_register":292624,"estimated":"True","stock":158926.8759872274,"stock_basis":"census_2022_gwz","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.73},{"bezirk":"Friedrichshain-Kreuzberg","year":2025,"completions":844.0,"population_census_basis":267258.0,"population_register":292789,"estimated":"False","stock":159758.0,"stock_basis":"census_2022_gwz","households":153283,"dwellings_zensus":157558,"vacancy_zensus":3180,"vacancy_rate":0.02018304370454055,"hh_size":1.74},{"bezirk":"Lichtenberg","year":2011,"completions":762.0,"population_census_basis":252197.0,"population_register":256280,"estimated":"False","stock":153813.1661296433,"stock_basis":"census_2011","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.73},{"bezirk":"Lichtenberg","year":2012,"completions":677.0,"population_census_basis":255368.67954853555,"population_register":260505,"estimated":"True","stock":154851.63274826136,"stock_basis":"census_2011","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.73},{"bezirk":"Lichtenberg","year":2013,"completions":995.0,"population_census_basis":258633.3677111122,"population_register":264858,"estimated":"True","stock":155890.09936687944,"stock_basis":"census_2011","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.73},{"bezirk":"Lichtenberg","year":2014,"completions":793.0,"population_census_basis":261139.45968106005,"population_register":268465,"estimated":"True","stock":156928.56598549747,"stock_basis":"census_2011","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.69},{"bezirk":"Lichtenberg","year":2015,"completions":1274.0,"population_census_basis":266592.8564649819,"population_register":275142,"estimated":"True","stock":157967.03260411552,"stock_basis":"census_2011","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.69},{"bezirk":"Lichtenberg","year":2016,"completions":1439.0,"population_census_basis":273252.3250274998,"population_register":283121,"estimated":"True","stock":159005.49922273358,"stock_basis":"census_2011","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.69},{"bezirk":"Lichtenberg","year":2017,"completions":2544.0,"population_census_basis":275184.9596834084,"population_register":286246,"estimated":"True","stock":160043.96584135166,"stock_basis":"census_2011","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.69},{"bezirk":"Lichtenberg","year":2018,"completions":2013.0,"population_census_basis":278168.3353787959,"population_register":290493,"estimated":"True","stock":161082.4324599697,"stock_basis":"census_2011","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.69},{"bezirk":"Lichtenberg","year":2019,"completions":2236.0,"population_census_basis":280605.46948575636,"population_register":294201,"estimated":"True","stock":162120.89907858774,"stock_basis":"census_2011","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.7},{"bezirk":"Lichtenberg","year":2020,"completions":2106.0,"population_census_basis":281996.130571195,"population_register":296837,"estimated":"True","stock":163159.3656972058,"stock_basis":"census_2011","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.7},{"bezirk":"Lichtenberg","year":2021,"completions":1480.0,"population_census_basis":283568.38169422175,"population_register":299686,"estimated":"True","stock":164197.83231582388,"stock_basis":"census_2022_gwz","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.7},{"bezirk":"Lichtenberg","year":2022,"completions":1571.0,"population_census_basis":290539.0,"population_register":308286,"estimated":"False","stock":166688.71249937182,"stock_basis":"census_2022_gwz","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.7},{"bezirk":"Lichtenberg","year":2023,"completions":3410.0,"population_census_basis":295618.5219884205,"population_register":311881,"estimated":"True","stock":167889.44954219324,"stock_basis":"census_2022_gwz","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.7},{"bezirk":"Lichtenberg","year":2024,"completions":1011.0,"population_census_basis":300805.6748332177,"population_register":315548,"estimated":"True","stock":169170.30693929543,"stock_basis":"census_2022_gwz","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.79},{"bezirk":"Lichtenberg","year":2025,"completions":1343.0,"population_census_basis":305118.0,"population_register":318261,"estimated":"False","stock":170055.0,"stock_basis":"census_2022_gwz","households":159148,"dwellings_zensus":163237,"vacancy_zensus":2636,"vacancy_rate":0.016148299711462474,"hh_size":1.88},{"bezirk":"Marzahn-Hellersdorf","year":2011,"completions":353.0,"population_census_basis":243893.0,"population_register":249232,"estimated":"False","stock":132458.14068304733,"stock_basis":"census_2011","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.86},{"bezirk":"Marzahn-Hellersdorf","year":2012,"completions":550.0,"population_census_basis":245717.72951498313,"population_register":251879,"estimated":"True","stock":133352.42926005783,"stock_basis":"census_2011","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.86},{"bezirk":"Marzahn-Hellersdorf","year":2013,"completions":340.0,"population_census_basis":247234.61851824567,"population_register":254226,"estimated":"True","stock":134246.71783706834,"stock_basis":"census_2011","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.86},{"bezirk":"Marzahn-Hellersdorf","year":2014,"completions":673.0,"population_census_basis":248349.4564988052,"population_register":256173,"estimated":"True","stock":135141.00641407885,"stock_basis":"census_2011","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.85},{"bezirk":"Marzahn-Hellersdorf","year":2015,"completions":633.0,"population_census_basis":250663.38384822448,"population_register":259373,"estimated":"True","stock":136035.29499108935,"stock_basis":"census_2011","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.85},{"bezirk":"Marzahn-Hellersdorf","year":2016,"completions":826.0,"population_census_basis":252420.29224744247,"population_register":262015,"estimated":"True","stock":136929.58356809986,"stock_basis":"census_2011","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.85},{"bezirk":"Marzahn-Hellersdorf","year":2017,"completions":1596.0,"population_census_basis":256107.7528593257,"population_register":266684,"estimated":"True","stock":137823.87214511036,"stock_basis":"census_2011","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.85},{"bezirk":"Marzahn-Hellersdorf","year":2018,"completions":1173.0,"population_census_basis":257264.4433116269,"population_register":268739,"estimated":"True","stock":138718.16072212087,"stock_basis":"census_2011","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.85},{"bezirk":"Marzahn-Hellersdorf","year":2019,"completions":1973.0,"population_census_basis":257619.4663943443,"population_register":269967,"estimated":"True","stock":139612.44929913135,"stock_basis":"census_2011","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.9},{"bezirk":"Marzahn-Hellersdorf","year":2020,"completions":1979.0,"population_census_basis":260379.3271456112,"population_register":273731,"estimated":"True","stock":140506.73787614185,"stock_basis":"census_2011","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.9},{"bezirk":"Marzahn-Hellersdorf","year":2021,"completions":1720.0,"population_census_basis":263252.84560632193,"population_register":277639,"estimated":"True","stock":141401.02645315236,"stock_basis":"census_2022_gwz","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.9},{"bezirk":"Marzahn-Hellersdorf","year":2022,"completions":2761.0,"population_census_basis":270007.0,"population_register":285678,"estimated":"False","stock":143546.0792212549,"stock_basis":"census_2022_gwz","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.9},{"bezirk":"Marzahn-Hellersdorf","year":2023,"completions":2090.0,"population_census_basis":277510.7478700259,"population_register":291948,"estimated":"True","stock":144580.10901300455,"stock_basis":"census_2022_gwz","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.9},{"bezirk":"Marzahn-Hellersdorf","year":2024,"completions":1014.0,"population_census_basis":281137.045863215,"population_register":294091,"estimated":"True","stock":145683.13545455952,"stock_basis":"census_2022_gwz","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.93},{"bezirk":"Marzahn-Hellersdorf","year":2025,"completions":544.0,"population_census_basis":285222.0,"population_register":296687,"estimated":"False","stock":146445.0,"stock_basis":"census_2022_gwz","households":138233,"dwellings_zensus":140977,"vacancy_zensus":2040,"vacancy_rate":0.014470445533668613,"hh_size":1.98},{"bezirk":"Mitte","year":2011,"completions":282.0,"population_census_basis":316507.0,"population_register":333152,"estimated":"False","stock":195045.27921767905,"stock_basis":"census_2011","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.65},{"bezirk":"Mitte","year":2012,"completions":378.0,"population_census_basis":321541.6467225484,"population_register":339974,"estimated":"True","stock":196362.1236509825,"stock_basis":"census_2011","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.65},{"bezirk":"Mitte","year":2013,"completions":1158.0,"population_census_basis":327747.8772922233,"population_register":348102,"estimated":"True","stock":197678.96808428594,"stock_basis":"census_2011","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.65},{"bezirk":"Mitte","year":2014,"completions":1278.0,"population_census_basis":334143.6298039967,"population_register":356506,"estimated":"True","stock":198995.81251758937,"stock_basis":"census_2011","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.71},{"bezirk":"Mitte","year":2015,"completions":998.0,"population_census_basis":338905.9947665148,"population_register":363236,"estimated":"True","stock":200312.6569508928,"stock_basis":"census_2011","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.71},{"bezirk":"Mitte","year":2016,"completions":2182.0,"population_census_basis":344949.4393995358,"population_register":371407,"estimated":"True","stock":201629.50138419625,"stock_basis":"census_2011","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.71},{"bezirk":"Mitte","year":2017,"completions":2510.0,"population_census_basis":349432.119238467,"population_register":377965,"estimated":"True","stock":202946.34581749968,"stock_basis":"census_2011","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.71},{"bezirk":"Mitte","year":2018,"completions":2406.0,"population_census_basis":352878.00228919944,"population_register":383457,"estimated":"True","stock":204263.19025080313,"stock_basis":"census_2011","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.71},{"bezirk":"Mitte","year":2019,"completions":3918.0,"population_census_basis":353345.0360376325,"population_register":385748,"estimated":"True","stock":205580.03468410653,"stock_basis":"census_2011","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.7},{"bezirk":"Mitte","year":2020,"completions":1786.0,"population_census_basis":349526.52009944915,"population_register":383360,"estimated":"True","stock":206896.87911741,"stock_basis":"census_2011","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.7},{"bezirk":"Mitte","year":2021,"completions":1226.0,"population_census_basis":350011.67829774256,"population_register":385692,"estimated":"True","stock":208213.72355071345,"stock_basis":"census_2022_gwz","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.7},{"bezirk":"Mitte","year":2022,"completions":1398.0,"population_census_basis":357319.0,"population_register":395599,"estimated":"False","stock":211372.32455427383,"stock_basis":"census_2022_gwz","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.7},{"bezirk":"Mitte","year":2023,"completions":1933.0,"population_census_basis":360822.36954127107,"population_register":397134,"estimated":"True","stock":212894.93863002022,"stock_basis":"census_2022_gwz","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.7},{"bezirk":"Mitte","year":2024,"completions":981.0,"population_census_basis":362820.4663127151,"population_register":397004,"estimated":"True","stock":214519.15062007352,"stock_basis":"census_2022_gwz","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.82},{"bezirk":"Mitte","year":2025,"completions":1049.0,"population_census_basis":365741.0,"population_register":397879,"estimated":"False","stock":215641.0,"stock_basis":"census_2022_gwz","households":205001,"dwellings_zensus":211686,"vacancy_zensus":4741,"vacancy_rate":0.02239637954328581,"hh_size":1.88},{"bezirk":"Neukölln","year":2011,"completions":61.0,"population_census_basis":298552.0,"population_register":313245,"estimated":"False","stock":153573.47609392335,"stock_basis":"census_2011","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.8},{"bezirk":"Neukölln","year":2012,"completions":102.0,"population_census_basis":302632.63779435836,"population_register":318356,"estimated":"True","stock":154610.32444989737,"stock_basis":"census_2011","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.8},{"bezirk":"Neukölln","year":2013,"completions":132.0,"population_census_basis":305442.0503269671,"population_register":322153,"estimated":"True","stock":155647.17280587138,"stock_basis":"census_2011","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.8},{"bezirk":"Neukölln","year":2014,"completions":401.0,"population_census_basis":308011.32275325654,"population_register":325716,"estimated":"True","stock":156684.02116184536,"stock_basis":"census_2011","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.87},{"bezirk":"Neukölln","year":2015,"completions":260.0,"population_census_basis":309415.0718400747,"population_register":328062,"estimated":"True","stock":157720.86951781937,"stock_basis":"census_2011","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.87},{"bezirk":"Neukölln","year":2016,"completions":343.0,"population_census_basis":308092.37500481476,"population_register":327522,"estimated":"True","stock":158757.7178737934,"stock_basis":"census_2011","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.87},{"bezirk":"Neukölln","year":2017,"completions":639.0,"population_census_basis":309028.7154855601,"population_register":329387,"estimated":"True","stock":159794.5662297674,"stock_basis":"census_2011","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.87},{"bezirk":"Neukölln","year":2018,"completions":794.0,"population_census_basis":309519.7517954216,"population_register":330786,"estimated":"True","stock":160831.4145857414,"stock_basis":"census_2011","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.87},{"bezirk":"Neukölln","year":2019,"completions":832.0,"population_census_basis":307887.2816990214,"population_register":329917,"estimated":"True","stock":161868.2629417154,"stock_basis":"census_2011","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.8},{"bezirk":"Neukölln","year":2020,"completions":608.0,"population_census_basis":305232.51832269825,"population_register":327945,"estimated":"True","stock":162905.1112976894,"stock_basis":"census_2011","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.8},{"bezirk":"Neukölln","year":2021,"completions":780.0,"population_census_basis":303633.6982531668,"population_register":327100,"estimated":"True","stock":163941.95965366342,"stock_basis":"census_2022_gwz","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.8},{"bezirk":"Neukölln","year":2022,"completions":392.0,"population_census_basis":305021.0,"population_register":329476,"estimated":"False","stock":166428.95825037983,"stock_basis":"census_2022_gwz","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.8},{"bezirk":"Neukölln","year":2023,"completions":757.0,"population_census_basis":306262.3607860207,"population_register":330017,"estimated":"True","stock":167627.8241614124,"stock_basis":"census_2022_gwz","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.8},{"bezirk":"Neukölln","year":2024,"completions":744.0,"population_census_basis":306510.76714893617,"population_register":329488,"estimated":"True","stock":168906.685573626,"stock_basis":"census_2022_gwz","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.79},{"bezirk":"Neukölln","year":2025,"completions":873.0,"population_census_basis":309241.0,"population_register":331623,"estimated":"False","stock":169790.0,"stock_basis":"census_2022_gwz","households":162760,"dwellings_zensus":167358,"vacancy_zensus":3582,"vacancy_rate":0.021403219445739075,"hh_size":1.83},{"bezirk":"Pankow","year":2011,"completions":1161.0,"population_census_basis":355361.0,"population_register":365021,"estimated":"False","stock":207894.47411366986,"stock_basis":"census_2011","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.64},{"bezirk":"Pankow","year":2012,"completions":1462.0,"population_census_basis":360380.9035792757,"population_register":370937,"estimated":"True","stock":209298.0696379973,"stock_basis":"census_2011","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.64},{"bezirk":"Pankow","year":2013,"completions":1220.0,"population_census_basis":366035.5411518345,"population_register":377532,"estimated":"True","stock":210701.66516232476,"stock_basis":"census_2011","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.64},{"bezirk":"Pankow","year":2014,"completions":1605.0,"population_census_basis":371896.0950569592,"population_register":384367,"estimated":"True","stock":212105.26068665218,"stock_basis":"census_2011","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.65},{"bezirk":"Pankow","year":2015,"completions":2001.0,"population_census_basis":376545.6174073251,"population_register":389976,"estimated":"True","stock":213508.85621097963,"stock_basis":"census_2011","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.65},{"bezirk":"Pankow","year":2016,"completions":2154.0,"population_census_basis":382927.43059622496,"population_register":397406,"estimated":"True","stock":214912.45173530708,"stock_basis":"census_2011","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.65},{"bezirk":"Pankow","year":2017,"completions":1533.0,"population_census_basis":386830.48951894854,"population_register":402289,"estimated":"True","stock":216316.04725963454,"stock_basis":"census_2011","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.65},{"bezirk":"Pankow","year":2018,"completions":2152.0,"population_census_basis":390586.4539178918,"population_register":407039,"estimated":"True","stock":217719.642783962,"stock_basis":"census_2011","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.65},{"bezirk":"Pankow","year":2019,"completions":2248.0,"population_census_basis":391973.56162394036,"population_register":409335,"estimated":"True","stock":219123.2383082894,"stock_basis":"census_2011","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.8},{"bezirk":"Pankow","year":2020,"completions":1775.0,"population_census_basis":392477.147120185,"population_register":410716,"estimated":"True","stock":220526.8338326169,"stock_basis":"census_2011","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.8},{"bezirk":"Pankow","year":2021,"completions":2334.0,"population_census_basis":393996.53041016,"population_register":413168,"estimated":"True","stock":221930.42935694434,"stock_basis":"census_2022_gwz","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.8},{"bezirk":"Pankow","year":2022,"completions":1749.0,"population_census_basis":400405.0,"population_register":420768,"estimated":"False","stock":225297.11270967106,"stock_basis":"census_2022_gwz","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.8},{"bezirk":"Pankow","year":2023,"completions":1610.0,"population_census_basis":404758.57479791675,"population_register":424307,"estimated":"True","stock":226920.03357104753,"stock_basis":"census_2022_gwz","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.8},{"bezirk":"Pankow","year":2024,"completions":1539.0,"population_census_basis":408583.531133269,"population_register":427276,"estimated":"True","stock":228651.24541516707,"stock_basis":"census_2022_gwz","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.86},{"bezirk":"Pankow","year":2025,"completions":1355.0,"population_census_basis":411133.0,"population_register":428900,"estimated":"False","stock":229847.0,"stock_basis":"census_2022_gwz","households":218855,"dwellings_zensus":224214,"vacancy_zensus":4298,"vacancy_rate":0.01916918658067739,"hh_size":1.77},{"bezirk":"Reinickendorf","year":2011,"completions":146.0,"population_census_basis":237758.0,"population_register":244727,"estimated":"False","stock":121311.19728601858,"stock_basis":"census_2011","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":1.91},{"bezirk":"Reinickendorf","year":2012,"completions":204.0,"population_census_basis":240178.72998246257,"population_register":247887,"estimated":"True","stock":122130.22749010356,"stock_basis":"census_2011","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":1.91},{"bezirk":"Reinickendorf","year":2013,"completions":338.0,"population_census_basis":242851.53333691636,"population_register":251325,"estimated":"True","stock":122949.25769418855,"stock_basis":"census_2011","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":1.91},{"bezirk":"Reinickendorf","year":2014,"completions":246.0,"population_census_basis":244771.04975143564,"population_register":254000,"estimated":"True","stock":123768.28789827353,"stock_basis":"census_2011","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":1.88},{"bezirk":"Reinickendorf","year":2015,"completions":267.0,"population_census_basis":246620.81236826247,"population_register":256617,"estimated":"True","stock":124587.31810235852,"stock_basis":"census_2011","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":1.88},{"bezirk":"Reinickendorf","year":2016,"completions":489.0,"population_census_basis":251030.24221035,"population_register":261919,"estimated":"True","stock":125406.3483064435,"stock_basis":"census_2011","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":1.88},{"bezirk":"Reinickendorf","year":2017,"completions":607.0,"population_census_basis":251948.05006382286,"population_register":263597,"estimated":"True","stock":126225.37851052849,"stock_basis":"census_2011","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":1.88},{"bezirk":"Reinickendorf","year":2018,"completions":436.0,"population_census_basis":252429.0860184714,"population_register":264826,"estimated":"True","stock":127044.40871461348,"stock_basis":"census_2011","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":1.88},{"bezirk":"Reinickendorf","year":2019,"completions":352.0,"population_census_basis":253239.23472001677,"population_register":266408,"estimated":"True","stock":127863.43891869845,"stock_basis":"census_2011","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":2.0},{"bezirk":"Reinickendorf","year":2020,"completions":989.0,"population_census_basis":252271.27356036307,"population_register":266123,"estimated":"True","stock":128682.46912278344,"stock_basis":"census_2011","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":2.0},{"bezirk":"Reinickendorf","year":2021,"completions":644.0,"population_census_basis":251242.41356472965,"population_register":265772,"estimated":"True","stock":129501.49932686843,"stock_basis":"census_2022_gwz","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":2.0},{"bezirk":"Reinickendorf","year":2022,"completions":1014.0,"population_census_basis":252937.0,"population_register":268308,"estimated":"False","stock":131466.0363360574,"stock_basis":"census_2022_gwz","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":2.0},{"bezirk":"Reinickendorf","year":2023,"completions":509.0,"population_census_basis":253735.65604708812,"population_register":268792,"estimated":"True","stock":132413.04790831494,"stock_basis":"census_2022_gwz","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":2.0},{"bezirk":"Reinickendorf","year":2024,"completions":746.0,"population_census_basis":259093.5837070237,"population_register":274098,"estimated":"True","stock":133423.249754522,"stock_basis":"census_2022_gwz","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":2.01},{"bezirk":"Reinickendorf","year":2025,"completions":120.0,"population_census_basis":257225.0,"population_register":271755,"estimated":"False","stock":134121.0,"stock_basis":"census_2022_gwz","households":128678,"dwellings_zensus":132677,"vacancy_zensus":2723,"vacancy_rate":0.02052352706196251,"hh_size":1.98},{"bezirk":"Spandau","year":2011,"completions":199.0,"population_census_basis":214235.0,"population_register":220645,"estimated":"False","stock":118570.59046250374,"stock_basis":"census_2011","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.79},{"bezirk":"Spandau","year":2012,"completions":282.0,"population_census_basis":216096.52249470347,"population_register":223305,"estimated":"True","stock":119371.11751258318,"stock_basis":"census_2011","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.79},{"bezirk":"Spandau","year":2013,"completions":246.0,"population_census_basis":218811.79713955245,"population_register":226868,"estimated":"True","stock":120171.64456266262,"stock_basis":"census_2011","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.79},{"bezirk":"Spandau","year":2014,"completions":269.0,"population_census_basis":221492.5220422538,"population_register":230419,"estimated":"True","stock":120972.17161274205,"stock_basis":"census_2011","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.72},{"bezirk":"Spandau","year":2015,"completions":271.0,"population_census_basis":224782.60971917675,"population_register":234630,"estimated":"True","stock":121772.6986628215,"stock_basis":"census_2011","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.72},{"bezirk":"Spandau","year":2016,"completions":329.0,"population_census_basis":229096.73242849647,"population_register":239942,"estimated":"True","stock":122573.22571290094,"stock_basis":"census_2011","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.72},{"bezirk":"Spandau","year":2017,"completions":405.0,"population_census_basis":230416.20639423752,"population_register":242143,"estimated":"True","stock":123373.75276298038,"stock_basis":"census_2011","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.72},{"bezirk":"Spandau","year":2018,"completions":1265.0,"population_census_basis":230522.7601755816,"population_register":243080,"estimated":"True","stock":124174.27981305984,"stock_basis":"census_2011","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.72},{"bezirk":"Spandau","year":2019,"completions":767.0,"population_census_basis":231738.4930715337,"population_register":245197,"estimated":"True","stock":124974.80686313927,"stock_basis":"census_2011","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.9},{"bezirk":"Spandau","year":2020,"completions":688.0,"population_census_basis":231257.40879886827,"population_register":245527,"estimated":"True","stock":125775.33391321871,"stock_basis":"census_2011","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.9},{"bezirk":"Spandau","year":2021,"completions":1668.0,"population_census_basis":232218.77854876406,"population_register":247396,"estimated":"True","stock":126575.86096329815,"stock_basis":"census_2022_gwz","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.9},{"bezirk":"Spandau","year":2022,"completions":1086.0,"population_census_basis":237761.0,"population_register":254175,"estimated":"False","stock":128496.01605513011,"stock_basis":"census_2022_gwz","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.9},{"bezirk":"Spandau","year":2023,"completions":740.0,"population_census_basis":241711.4744255767,"population_register":257091,"estimated":"True","stock":129421.633177123,"stock_basis":"census_2022_gwz","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.9},{"bezirk":"Spandau","year":2024,"completions":2477.0,"population_census_basis":244999.88468076,"population_register":259277,"estimated":"True","stock":130409.01300743394,"stock_basis":"census_2022_gwz","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.96},{"bezirk":"Spandau","year":2025,"completions":814.0,"population_census_basis":248122.0,"population_register":261266,"estimated":"False","stock":131091.0,"stock_basis":"census_2022_gwz","households":121145,"dwellings_zensus":126800,"vacancy_zensus":3025,"vacancy_rate":0.02385646687697161,"hh_size":1.98},{"bezirk":"Steglitz-Zehlendorf","year":2011,"completions":220.0,"population_census_basis":277078.0,"population_register":293692,"estimated":"False","stock":147583.03418232637,"stock_basis":"census_2011","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.84},{"bezirk":"Steglitz-Zehlendorf","year":2012,"completions":285.0,"population_census_basis":279161.14207917417,"population_register":295746,"estimated":"True","stock":148579.43818550213,"stock_basis":"census_2011","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.84},{"bezirk":"Steglitz-Zehlendorf","year":2013,"completions":694.0,"population_census_basis":281624.0682651854,"population_register":298200,"estimated":"True","stock":149575.84218867787,"stock_basis":"census_2011","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.84},{"bezirk":"Steglitz-Zehlendorf","year":2014,"completions":472.0,"population_census_basis":282779.7682985943,"population_register":299268,"estimated":"True","stock":150572.2461918536,"stock_basis":"census_2011","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.81},{"bezirk":"Steglitz-Zehlendorf","year":2015,"completions":635.0,"population_census_basis":283396.6967675574,"population_register":299765,"estimated":"True","stock":151568.65019502936,"stock_basis":"census_2011","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.81},{"bezirk":"Steglitz-Zehlendorf","year":2016,"completions":1100.0,"population_census_basis":287631.188033393,"population_register":304086,"estimated":"True","stock":152565.05419820512,"stock_basis":"census_2011","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.81},{"bezirk":"Steglitz-Zehlendorf","year":2017,"completions":768.0,"population_census_basis":290610.2956323585,"population_register":307076,"estimated":"True","stock":153561.45820138088,"stock_basis":"census_2011","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.81},{"bezirk":"Steglitz-Zehlendorf","year":2018,"completions":634.0,"population_census_basis":291709.01654565206,"population_register":308077,"estimated":"True","stock":154557.86220455662,"stock_basis":"census_2011","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.81},{"bezirk":"Steglitz-Zehlendorf","year":2019,"completions":540.0,"population_census_basis":293749.4516501412,"population_register":310071,"estimated":"True","stock":155554.26620773238,"stock_basis":"census_2011","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.9},{"bezirk":"Steglitz-Zehlendorf","year":2020,"completions":479.0,"population_census_basis":292735.01958174154,"population_register":308840,"estimated":"True","stock":156550.6702109081,"stock_basis":"census_2011","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.9},{"bezirk":"Steglitz-Zehlendorf","year":2021,"completions":360.0,"population_census_basis":291269.8622275461,"population_register":307135,"estimated":"True","stock":157547.07421408387,"stock_basis":"census_2022_gwz","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.9},{"bezirk":"Steglitz-Zehlendorf","year":2022,"completions":672.0,"population_census_basis":295126.0,"population_register":311040,"estimated":"False","stock":159937.06243500632,"stock_basis":"census_2022_gwz","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.9},{"bezirk":"Steglitz-Zehlendorf","year":2023,"completions":345.0,"population_census_basis":295087.90663066355,"population_register":310446,"estimated":"True","stock":161089.16417306778,"stock_basis":"census_2022_gwz","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.9},{"bezirk":"Steglitz-Zehlendorf","year":2024,"completions":317.0,"population_census_basis":295230.62881322054,"population_register":310044,"estimated":"True","stock":162318.1410271031,"stock_basis":"census_2022_gwz","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.97},{"bezirk":"Steglitz-Zehlendorf","year":2025,"completions":793.0,"population_census_basis":295082.0,"population_register":309338,"estimated":"False","stock":163167.0,"stock_basis":"census_2022_gwz","households":155286,"dwellings_zensus":162188,"vacancy_zensus":3920,"vacancy_rate":0.024169482329148888,"hh_size":1.96},{"bezirk":"Tempelhof-Schöneberg","year":2011,"completions":177.0,"population_census_basis":316936.0,"population_register":329361,"estimated":"False","stock":171524.90303329608,"stock_basis":"census_2011","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.76},{"bezirk":"Tempelhof-Schöneberg","year":2012,"completions":191.0,"population_census_basis":315255.41262601654,"population_register":328428,"estimated":"True","stock":172682.95010133216,"stock_basis":"census_2011","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.76},{"bezirk":"Tempelhof-Schöneberg","year":2013,"completions":70.0,"population_census_basis":317722.41235801816,"population_register":331822,"estimated":"True","stock":173840.99716936823,"stock_basis":"census_2011","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.76},{"bezirk":"Tempelhof-Schöneberg","year":2014,"completions":333.0,"population_census_basis":320699.5073422676,"population_register":335767,"estimated":"True","stock":174999.04423740428,"stock_basis":"census_2011","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.82},{"bezirk":"Tempelhof-Schöneberg","year":2015,"completions":367.0,"population_census_basis":325038.3198423565,"population_register":341161,"estimated":"True","stock":176157.09130544032,"stock_basis":"census_2011","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.82},{"bezirk":"Tempelhof-Schöneberg","year":2016,"completions":285.0,"population_census_basis":328926.60976528854,"population_register":346108,"estimated":"True","stock":177315.1383734764,"stock_basis":"census_2011","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.82},{"bezirk":"Tempelhof-Schöneberg","year":2017,"completions":311.0,"population_census_basis":330595.808255221,"population_register":348739,"estimated":"True","stock":178473.18544151247,"stock_basis":"census_2011","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.82},{"bezirk":"Tempelhof-Schöneberg","year":2018,"completions":630.0,"population_census_basis":332308.2550437161,"population_register":351429,"estimated":"True","stock":179631.2325095485,"stock_basis":"census_2011","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.82},{"bezirk":"Tempelhof-Schöneberg","year":2019,"completions":1028.0,"population_census_basis":331050.9218648161,"population_register":350984,"estimated":"True","stock":180789.27957758456,"stock_basis":"census_2011","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.8},{"bezirk":"Tempelhof-Schöneberg","year":2020,"completions":1025.0,"population_census_basis":328854.8853494694,"population_register":349539,"estimated":"True","stock":181947.32664562063,"stock_basis":"census_2011","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.8},{"bezirk":"Tempelhof-Schöneberg","year":2021,"completions":1369.0,"population_census_basis":327068.32819755113,"population_register":348523,"estimated":"True","stock":183105.3737136567,"stock_basis":"census_2022_gwz","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.8},{"bezirk":"Tempelhof-Schöneberg","year":2022,"completions":564.0,"population_census_basis":331283.0,"population_register":353913,"estimated":"False","stock":185883.0811928104,"stock_basis":"census_2022_gwz","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.8},{"bezirk":"Tempelhof-Schöneberg","year":2023,"completions":862.0,"population_census_basis":334154.88088375604,"population_register":355868,"estimated":"True","stock":187222.08428351354,"stock_basis":"census_2022_gwz","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.8},{"bezirk":"Tempelhof-Schöneberg","year":2024,"completions":1428.0,"population_census_basis":336224.39621011465,"population_register":356959,"estimated":"True","stock":188650.43366585614,"stock_basis":"census_2022_gwz","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.86},{"bezirk":"Tempelhof-Schöneberg","year":2025,"completions":600.0,"population_census_basis":339042.0,"population_register":358835,"estimated":"False","stock":189637.0,"stock_basis":"census_2022_gwz","households":182432,"dwellings_zensus":186619,"vacancy_zensus":3205,"vacancy_rate":0.017174028367958248,"hh_size":1.89},{"bezirk":"Treptow-Köpenick","year":2011,"completions":396.0,"population_census_basis":237881.0,"population_register":241487,"estimated":"False","stock":146453.3252969897,"stock_basis":"census_2011","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.75},{"bezirk":"Treptow-Köpenick","year":2012,"completions":680.0,"population_census_basis":239488.4520845028,"population_register":243844,"estimated":"True","stock":147442.10209245823,"stock_basis":"census_2011","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.75},{"bezirk":"Treptow-Köpenick","year":2013,"completions":574.0,"population_census_basis":240837.29218507832,"population_register":245951,"estimated":"True","stock":148430.87888792675,"stock_basis":"census_2011","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.75},{"bezirk":"Treptow-Köpenick","year":2014,"completions":1158.0,"population_census_basis":243523.0045979474,"population_register":249440,"estimated":"True","stock":149419.65568339525,"stock_basis":"census_2011","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.76},{"bezirk":"Treptow-Köpenick","year":2015,"completions":1797.0,"population_census_basis":246581.5077757555,"population_register":253333,"estimated":"True","stock":150408.43247886378,"stock_basis":"census_2011","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.76},{"bezirk":"Treptow-Köpenick","year":2016,"completions":2741.0,"population_census_basis":251847.2261962872,"population_register":259524,"estimated":"True","stock":151397.20927433227,"stock_basis":"census_2011","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.76},{"bezirk":"Treptow-Köpenick","year":2017,"completions":2097.0,"population_census_basis":256383.9479693375,"population_register":264999,"estimated":"True","stock":152385.9860698008,"stock_basis":"census_2011","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.76},{"bezirk":"Treptow-Köpenick","year":2018,"completions":2545.0,"population_census_basis":260214.36329026255,"population_register":269775,"estimated":"True","stock":153374.76286526932,"stock_basis":"census_2011","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.76},{"bezirk":"Treptow-Köpenick","year":2019,"completions":2915.0,"population_census_basis":263187.8695371999,"population_register":273689,"estimated":"True","stock":154363.53966073782,"stock_basis":"census_2011","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.8},{"bezirk":"Treptow-Köpenick","year":2020,"completions":1816.0,"population_census_basis":264759.83038654,"population_register":276165,"estimated":"True","stock":155352.31645620635,"stock_basis":"census_2011","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.8},{"bezirk":"Treptow-Köpenick","year":2021,"completions":2806.0,"population_census_basis":267957.38899181713,"population_register":280357,"estimated":"True","stock":156341.09325167487,"stock_basis":"census_2022_gwz","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.8},{"bezirk":"Treptow-Köpenick","year":2022,"completions":3904.0,"population_census_basis":275543.0,"population_register":289180,"estimated":"False","stock":158712.78674824783,"stock_basis":"census_2022_gwz","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.8},{"bezirk":"Treptow-Köpenick","year":2023,"completions":2187.0,"population_census_basis":281919.2545781753,"population_register":294081,"estimated":"True","stock":159856.0694538405,"stock_basis":"census_2022_gwz","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.8},{"bezirk":"Treptow-Köpenick","year":2024,"completions":4063.0,"population_census_basis":286668.4592126562,"population_register":297236,"estimated":"True","stock":161075.63881683478,"stock_basis":"census_2022_gwz","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.9},{"bezirk":"Treptow-Köpenick","year":2025,"completions":1891.0,"population_census_basis":293681.0,"population_register":302686,"estimated":"False","stock":161918.0,"stock_basis":"census_2022_gwz","households":148051,"dwellings_zensus":151361,"vacancy_zensus":2530,"vacancy_rate":0.016715005846948686,"hh_size":1.93}],"levers":{"roundA":{"label":"Runde 1, „gezählt“: Zensus 9.5.2011 → Zensus 15.5.2022","arrivals":{"value":304614,"unit":"Personen","ref_date":"2011-05-09/2022-05-15","spatial_unit":"Berlin","source":"Zensus 2011 & 2022, Ergebnisse Berlin (Gemeinde-Level); docs/research/stage3a_gap_report.md §1","tag":"V"},"frame_text":"Die Stadt hat Platz geschaffen durch …","taps":{"neu_gebaut":{"value":149403,"unit":"Wohnungen","ref_date":"2011-05-09/2022-05-15","spatial_unit":"Berlin","source":"F II 2 Baufertigstellungen; Zensus 2011 & 2022, Ergebnisse Berlin (Gemeinde-Level); docs/research/stage3a_gap_report.md §1","tag":"V","label":"Neu gebaut","note":"+149.403 Whg. ≈ 267.000 Menschen (88 %)"},"aus_leeren_wohnungen":{"value":25577,"unit":"Wohnungen","ref_date":"2011-05-09/2022-05-15","spatial_unit":"Berlin","source":"Zensus 2011 & 2022, Ergebnisse Berlin (Gemeinde-Level); docs/research/stage3a_gap_report.md §1","tag":"V","label":"Aus leeren Wohnungen","note":"25.577 Whg. ≈ 46.000 (15 %); Leerstand 3,5 % → 2,0 %"},"ferienwohnungen_gewerbe_zweitwohnungen":{"value":-9562,"unit":"Wohnungen","ref_date":"2011-05-09/2022-05-15","spatial_unit":"Berlin","source":"Zensus 2011 & 2022, Ergebnisse Berlin (Gemeinde-Level); docs/research/stage3a_gap_report.md §1","tag":"V","label":"Ferienwohnungen, Gewerbe, Zweitwohnungen","note":"−9.562 Whg. ≈ −17.000 (−6 %)"},"enger_gewohnt":{"value":0,"unit":"Personen","ref_date":"2011-05-09/2022-05-15","spatial_unit":"Berlin","source":"Zensus 2011 & 2022, Ergebnisse Berlin (Gemeinde-Level); docs/research/stage3a_gap_report.md §1","tag":"I","label":"Enger gewohnt","note":"≈ 0 (± 20.000): Zensus-Haushaltsgröße bleibt bei ≈ 1,79, aber der 2011-Wert hängt an der nicht ermittelten Anstaltsbevölkerung"},"in_unterkuenften":{"value":null,"unit":"Personen","ref_date":"2011-05-09/2022-05-15","spatial_unit":"Berlin","source":"AfS: Unterkunftsstatistik beginnt erst 31.01.2022","tag":"I","label":"In Unterkünften","note":"nicht gemessen (Statistik beginnt 31.01.2022); im Rest ≈ 8.500 (3 %)"},"umgebaut_aufgestockt":{"value":null,"unit":"Wohnungen","ref_date":"2011-05-09/2022-05-15","spatial_unit":"Berlin","source":"F II 2 (Baumaßnahmen an bestehenden Gebäuden, in 'Neu gebaut' enthalten)","tag":"V","label":"Umgebaut, aufgestockt","note":"in „Neu gebaut“ enthalten"},"uebernommen":{"value":0,"unit":"Personen","ref_date":"2011-05-09/2022-05-15","spatial_unit":"Berlin","source":"docs/research/sonnet2_transfers_allocation.md (2021-2025 LWU-Käufe)","tag":"S","label":"Übernommen","note":"0 Menschen; Felder färben sich um"},"gar_nicht_gekommen":{"value":null,"unit":"Personen","ref_date":"2011-05-09/2022-05-15","spatial_unit":"Berlin","source":"A III 1 Brandenburg-Wanderung (nicht beschafft)","tag":"I","label":"Gar nicht gekommen","note":"nicht messbar in der Bilanz"}},"identity":{"formula":"149403 + 25577 - 9562 = 165418","dwellings":{"value":165418,"unit":"Wohnungen","ref_date":"2011-05-09/2022-05-15","spatial_unit":"Berlin","source":"Zensus 2011 & 2022, Ergebnisse Berlin (Gemeinde-Level); docs/research/stage3a_gap_report.md §1","tag":"V"},"persons_per_household":{"value":1.79,"unit":"Personen/Haushalt","ref_date":"2022-05-15","spatial_unit":"Berlin","source":"Zensus 2011 & 2022, Ergebnisse Berlin (Gemeinde-Level); docs/research/stage3a_gap_report.md §1","tag":"I"},"label":"rechnerisch"}},"roundB":{"label":"Runde 2, „geschätzt“: 15.5.2022 → 31.12.2025","arrivals":{"value":103598,"unit":"Personen","ref_date":"2022-05-15/2025-12-31","spatial_unit":"Berlin","source":"A I 3","tag":"V"},"stock_change":{"value":50592,"unit":"Wohnungen","ref_date":"2022-05-15/2025-12-31","spatial_unit":"Berlin","source":"F I 1, Statistischer Bericht, Amt für Statistik Berlin-Brandenburg","tag":"V"},"unterkuenfte_change":{"value":27635,"unit":"Personen","ref_date":"2022-01-31/2025-01-31","spatial_unit":"Berlin","source":"AfS Berlin-Brandenburg, Wohnungslosenstatistik","tag":"V"},"uebernommen":{"dwellings":{"value":5400,"unit":"Wohnungen","ref_date":"2023-2025","spatial_unit":"Berlin","source":"docs/research/sonnet2_transfers_allocation.md (2023-2025 LWU-Ankäufe)","tag":"V"},"persons":{"value":0,"unit":"Personen","ref_date":"2023-2025","spatial_unit":"Berlin","source":"docs/research/sonnet2_transfers_allocation.md","tag":"V"}},"overlap_caveat":"Schätzung, keine Volkszählung. Die Teile ergeben mehr als 100 %, weil die Quellen sich überschneiden.","overlap_pct":{"value":114,"unit":"%","ref_date":"2022-05-15/2025-12-31","spatial_unit":"Berlin","source":"I (50.592×1,79 + 27.635) / 103.598 ≈ 114 %","tag":"I"}},"dials":{"reserve":{"default":3,"min":0,"max":5,"unit":"%","senate_value":{"value":3,"unit":"%","ref_date":"2024","spatial_unit":"Berlin","source":"StEP Wohnen 2040, Senat Berlin 2024, S. 75-77","tag":"V"}},"hh_size":{"default":1.77,"min":1.7,"max":2.0,"unit":"Personen/Haushalt","senate_value":{"value":1.77,"unit":"Personen/Haushalt","ref_date":"2024","spatial_unit":"Berlin","source":"StEP Wohnen 2040, Senat Berlin 2024, S. 75-77","tag":"V"}},"bridge":{"formula":"total = reserve_component + relief_component + replacement_component; at reserve=3% and hh_size=1.77 these equal 41000 + 77000 + 19000 = 137000 (StEP Wohnen 2040 pp. 75-77). reserve_component scales linearly with the reserve dial from a 2025 stock of 2,069,432 (0%-reserve point = 0 Wohnungen below the stock at reserve=0, i.e. component = stock * reserve/100, calibrated so reserve=3% -> 41000); relief_component is held at the StEP figure (77000) at hh_size=1.77 and scales inversely with hh_size (lower hh_size = more relief needed); replacement_component is fixed at 19000 (StEP, 1,000/yr x 19 years to 2040) and does not depend on the dials.","total_at_senate_values":{"value":137000,"unit":"Wohnungen","ref_date":"2022-2040","spatial_unit":"Berlin","source":"StEP Wohnen 2040, Senat Berlin 2024, S. 75-77","tag":"V"},"reserve_component":{"value":41000,"unit":"Wohnungen","ref_date":"2022-2040","spatial_unit":"Berlin","source":"StEP Wohnen 2040, Senat Berlin 2024, S. 75-77","tag":"V"},"relief_component":{"value":77000,"unit":"Wohnungen","ref_date":"2022-2040","spatial_unit":"Berlin","source":"StEP Wohnen 2040, Senat Berlin 2024, S. 75-77","tag":"V"},"replacement_component":{"value":19000,"unit":"Wohnungen","ref_date":"2022-2040","spatial_unit":"Berlin","source":"StEP Wohnen 2040, Senat Berlin 2024, S. 75-77","tag":"V"},"excludes":"die Menschen in Unterkünften","stock_2025_for_reserve_calc":{"value":2069432,"unit":"Wohnungen","ref_date":"2025-12-31","spatial_unit":"Berlin","source":"F I 1, Statistischer Bericht, Amt für Statistik Berlin-Brandenburg","tag":"V"},"update_211000":{"value":211000,"unit":"Wohnungen","ref_date":"2026-2040","spatial_unit":"Berlin","source":"Fortschrittsbericht StEP Wohnen 2040, Senatspressemitteilung 1682261, 16.06.2026","tag":"S"},"update_components":{"relief":{"value":138000,"unit":"Wohnungen","ref_date":"2026-2040","spatial_unit":"Berlin","source":"Fortschrittsbericht StEP Wohnen 2040, Senatspressemitteilung 1682261, 16.06.2026","tag":"S"},"demographic":{"value":73000,"unit":"Wohnungen","ref_date":"2026-2040","spatial_unit":"Berlin","source":"Fortschrittsbericht StEP Wohnen 2040, Senatspressemitteilung 1682261, 16.06.2026","tag":"S"}},"bridge_text":"Berlin hat Platz geschaffen, auch indem es Reserven aufgebraucht hat. Stellen Sie ein, wie viel Reserve und wie viel Platz pro Haushalt Berlin haben sollte. Mit den Werten des Senats (3 % Reserve, 1,77 Personen je Haushalt) ergibt sich der Entlastungsbedarf von 137.000 Wohnungen: 41.000 Reserve, 77.000 Entlastung, 19.000 Ersatz (StEP Wohnen 2040). Nicht enthalten: die Menschen in Unterkünften."}},"partB":{"stock_squares":{"value":2069,"unit":"x1000 Wohnungen","ref_date":"2025-12-31","spatial_unit":"Berlin","source":"F I 1, Statistischer Bericht, Amt für Statistik Berlin-Brandenburg","tag":"V"},"senate_need":{"value":211000,"unit":"Wohnungen","ref_date":"2026-2040","spatial_unit":"Berlin","source":"Fortschrittsbericht StEP Wohnen 2040, Senatspressemitteilung 1682261, 16.06.2026","tag":"S"},"caveats":["Die Zahlen beruhen auf der zensus-korrigierten Bevölkerung (Zensus 2011 und die Fortschreibung auf Basis 2022), nicht auf dem Melderegister. Das Register zeigt seit 2011 rund 78.000 mehr Wachstum wegen veralteter Anmeldungen.","Die Haushaltsgröße ist eine Annahme, und sie ist gestiegen, nicht gefallen. Je 0,05 Personen ändert sich die Berliner Lücke um etwa 5.000-6.000 Wohnungen. Der Berliner Durchschnitt stieg von 1,75 (2011) auf 1,85 (2024).","„Lücke“ hier ist nicht „Bedarf“. Sie zeigt den Rückstand des Bauens gegenüber dem Bevölkerungswachstum seit 2011, sichtbar am sinkenden Leerstand (3,5 % → 2,0 %). Die 137.000/138.000 des Senats sind ein Zielwert, kein gemessener Rückstand."],"levers":{"neu_bauen":{"felder":{"value":11.0,"unit":"x1000 Wohnungen/Jahr","ref_date":"2025","spatial_unit":"Berlin","source":"F II 2 Baufertigstellungen","tag":"V"},"tempo_2025":{"value":11.0,"unit":"x1000/Jahr","ref_date":"2025","spatial_unit":"Berlin","source":"F II 2","tag":"V"},"tempo_2019":{"value":19.0,"unit":"x1000/Jahr","ref_date":"2019","spatial_unit":"Berlin","source":"F II 2","tag":"V"},"wer_zahlt":"gemischt (privat, LWU, Land)","lwu":{"value":4.7,"unit":"x1000/Jahr","ref_date":"2025","spatial_unit":"Berlin","source":"Kooperationsvereinbarung \"Leistbare Mieten, mehr Neubau, soziale Wohnungspolitik\", Berichte 2021-2024 (SenSBW)","tag":"V"},"quelle":"F II 2 Baufertigstellungen; KoopV-Jahresbericht 2024"},"ueberhang":{"felder":{"value":48.4,"unit":"x1000 Wohnungen","ref_date":"2025-12-31","spatial_unit":"Berlin","source":"F II 2 Tab. 17","tag":"V"},"unter_dach":{"value":12.9,"unit":"x1000 Wohnungen","ref_date":"2025-12-31","spatial_unit":"Berlin","source":"F II 2 Tab. 17","tag":"V"},"rohbau":{"value":12.3,"unit":"x1000 Wohnungen","ref_date":"2025-12-31","spatial_unit":"Berlin","source":"F II 2 Tab. 17","tag":"V"},"nicht_begonnen":{"value":15.8,"unit":"x1000 Wohnungen","ref_date":"2025-12-31","spatial_unit":"Berlin","source":"F II 2 Tab. 17","tag":"V"},"quelle":"F II 2, Statistischer Bericht, Tabellen 16-17"},"leerstand":{"market_active":{"value":5.4,"unit":"x1000 Wohnungen","ref_date":"2024","spatial_unit":"Berlin","source":"CBRE-empirica Leerstandsindex","tag":"V"},"ceiling":{"value":11.8,"unit":"x1000 Wohnungen","ref_date":"2022-05-15","spatial_unit":"Berlin","source":"Zensus 2022, Drs. 19/20607","tag":"V"},"quelle":"CBRE-empirica Leerstandsindex 2025; Zensus 2022 / Drs. 19/20607"},"ferienwohnungen":{"listings":{"value":8.4,"unit":"x1000 Inserate","ref_date":"2026-09-19","spatial_unit":"Berlin","source":"Inside Airbnb","tag":"V"},"active":{"value":4.9,"unit":"x1000 Inserate","ref_date":"2026-09-19","spatial_unit":"Berlin","source":"Inside Airbnb (in letzten 12 Monaten bewertet)","tag":"V"},"returned_since_2014":{"value":8.3,"unit":"x1000 Wohnungen","ref_date":"2014-2025-06-30","spatial_unit":"Berlin","source":"Drs. 19/24230; 19/21276","tag":"V"},"per_year":{"value":0.5,"unit":"x1000/Jahr","ref_date":"2020-2025","spatial_unit":"Berlin","source":"Drs. 19/24230; 19/21276","tag":"V"},"quelle":"Inside Airbnb; Senatsverwaltung Drs. 19/24230, 19/21276"},"zweckentfremdung_gesamt":{"felder":{"value":31.7,"unit":"x1000 Wohnungen","ref_date":"2014-2025-06-30","spatial_unit":"Berlin","source":"Drs. 19/24230","tag":"V"},"quelle":"Drs. 19/24230 (Zweckentfremdungsverbot, seit 2014 zurückgeführt)"},"aufstocken_umnutzen":{"supermaerkte":{"value":[20,36],"unit":"x1000 Wohnungen","ref_date":"2019","spatial_unit":"Berlin","source":"Deutschlandstudie 2019 (TU Darmstadt + Pestel)","tag":"S"},"buero":{"value":30,"unit":"x1000 Wohnungen","ref_date":"2025","spatial_unit":"Berlin","source":"bulwiengesa/Berlin Hyp Kurzstudie 2025","tag":"S"},"quelle":"Deutschlandstudie 2019; bulwiengesa/Berlin Hyp 2025"},"sozialbindungen":{"felder":{"value":-46,"unit":"x1000 Wohnungen","ref_date":"2024-2034","spatial_unit":"Berlin","source":"IBB Wohnungsmarktbericht 2024","tag":"V"},"note":"Sozialbindungen laufen aus; kein Zugewinn, Darstellung recolour-reverse","quelle":"IBB Wohnungsmarktbericht 2024"},"unterkuenfte":{"felder":{"value":54,"unit":"x1000 Personen","ref_date":"2025-01-31","spatial_unit":"Berlin","source":"AfS Berlin-Brandenburg, Wohnungslosenstatistik","tag":"V"},"note":"Bedarfsmarker, keine Wohnungs-Angebotszahl","quelle":"AfS Wohnungslosenstatistik"},"vergesellschaften":{"umfang":{"value":{"value":222,"unit":"x1000 Wohnungen","ref_date":"2021-12-31","spatial_unit":"Berlin","source":"Expertenkommission Vergesellschaftung, Abschlussbericht, 27.06.2023","tag":"V"},"neue_wohnungen":{"value":0,"unit":"Wohnungen","ref_date":"2021-12-31","spatial_unit":"Berlin","source":"Expertenkommission Vergesellschaftung, Abschlussbericht, 27.06.2023","tag":"V"},"share_all_dwellings":{"value":10.7,"unit":"%","ref_date":"2021-12-31","spatial_unit":"Berlin","source":"Expertenkommission Vergesellschaftung, Abschlussbericht, 27.06.2023","tag":"I"},"share_rental_stock":{"value":13.5,"unit":"%","ref_date":"2021-12-31","spatial_unit":"Berlin","source":"Expertenkommission Vergesellschaftung, Abschlussbericht, 27.06.2023","tag":"V"},"text":"222.000 Wohnungen großer Vermieter (ab 3.000 Wohnungen) gingen an eine Anstalt öffentlichen Rechts. Neue Wohnungen: 0."},"vergabe":{"net_flow_low":{"value":3300,"unit":"Wohnungen/Jahr","ref_date":"2024","spatial_unit":"Berlin","source":"I (3,3 % Fluktuation x 75 % Quote vs. 30 % Bündnis-Quote), siehe Bernt, M. / Holm, A. (2023): Vergesellschaftung ..., RLS Studien 1/2023 und Kooperationsvereinbarung \"Leistbare Mieten, mehr Neubau, soziale Wohnungspolitik\", Berichte 2021-2024 (SenSBW)","tag":"I"},"net_flow_high":{"value":5000,"unit":"Wohnungen/Jahr","ref_date":"2024","spatial_unit":"Berlin","source":"I (5 % Fluktuation x 63-75 % Quote vs. 30 % Bündnis-Quote)","tag":"I"},"campaign_gross_quote":{"value":6999,"unit":"Wohnungen/Jahr","ref_date":"2023","spatial_unit":"Berlin","source":"Bernt, M. / Holm, A. (2023): Vergesellschaftung ..., RLS Studien 1/2023","tag":"S"},"lock_in_text":"Risiko: Wer günstig wohnt, zieht seltener um (25 von 26 Studien, Kholodilin, K. (2024): literature review of rent-control mobility effects (cited via opus3_design_review.md)). Gegenschätzung (bankfinanziert, nicht kausal): empirica/Simons 2026 ≈ 7.200 Wohnungen Fläche außer Umlauf, „grob und ausdrücklich ohne Anspruch auf Kausalität“.","text":"Pro Jahr würden rund 3.300-5.000 Wohnungen mehr an Haushalte mit WBS vermietet als heute. Gleiche Wohnungen, andere Mieter. Die Initiative rechnet mit 7.000 (brutto). Risiko: Wer günstig wohnt, zieht seltener um (25 von 26 Studien).","axis_note":"eigene Achse: Jahresfluss, nicht Teil der Waffel-Quadrate"},"miete":{"rent_relief_pct":{"value":-16,"unit":"%","ref_date":"2023","spatial_unit":"Berlin","source":"Bernt, M. / Holm, A. (2023): Vergesellschaftung ..., RLS Studien 1/2023","tag":"S"},"rent_relief_eur_per_hh_year":{"value":936,"unit":"EUR/Haushalt/Jahr","ref_date":"2023","spatial_unit":"Berlin","source":"Bernt, M. / Holm, A. (2023): Vergesellschaftung ..., RLS Studien 1/2023","tag":"S"},"text":"−16 % für Neuvermietete, ca. 936 € pro Haushalt und Jahr (Schätzung der Initiative, Bernt/Holm 2023)."},"kosten":{"compensation_low_bn_eur":{"value":8,"unit":"Mrd. EUR","ref_date":"2024","spatial_unit":"Berlin","source":"Rechnungshof Berlin, Bericht 20.02.2024","tag":"V"},"compensation_high_bn_eur":{"value":36,"unit":"Mrd. EUR","ref_date":"2024","spatial_unit":"Berlin","source":"Rechnungshof Berlin, Bericht 20.02.2024","tag":"V"},"diw_annual_low_bn_eur":{"value":-0.3,"unit":"Mrd. EUR/Jahr","ref_date":"2026","spatial_unit":"Berlin","source":"DIW aktuell 126, 05.10.2026","tag":"V"},"diw_annual_high_bn_eur":{"value":1.1,"unit":"Mrd. EUR/Jahr","ref_date":"2026","spatial_unit":"Berlin","source":"DIW aktuell 126, 05.10.2026","tag":"V"},"no_dwelling_conversion":true,"text":"Entschädigung 8-36 Mrd. € (Schätzungen 2019-2026), über Kredite und Mieten finanziert. Jährliche Belastung für den Landeshaushalt: −0,3 bis +1,1 Mrd. € (DIW, je nach Entschädigung und Miete)."},"bauen":{"toggle":true,"quotes":[{"side":"Mehrheit Expertenkommission","text":"verspricht einen hohen Beitrag zum Neubau, wenn gesetzlich vorgegeben","source":"Expertenkommission Vergesellschaftung, Abschlussbericht, 27.06.2023","tag":"V"},{"side":"Sondervotum (Minderheit)","text":"nicht belegt und eher unplausibel","source":"Expertenkommission Vergesellschaftung, Abschlussbericht, 27.06.2023","tag":"V"},{"side":"Initiative (AöR-Konzept)","text":"nach einer Konsolidierungsphase sind auch eigene Neubauprojekte … denkbar","source":"DW & Co. enteignen, AöR-Konzept","tag":"V"}],"text":"Mehrheit der Kommission: „verspricht einen hohen Beitrag“ zum Neubau, wenn gesetzlich vorgegeben. Minderheit: „nicht belegt und eher unplausibel“. Initiative: eigene Neubauprojekte „denkbar“. Keine Zahl.","risk_band":{"private_share_pct":{"value":[42,46],"unit":"%","ref_date":"2008-2025","spatial_unit":"Berlin","source":"DIW aktuell 126, 05.10.2026","tag":"V"},"label":"alle privaten Wohnungsunternehmen","text":"Private Wohnungsunternehmen bauten 42-46 % der neuen Wohnungen (DIW). Welcher Teil davon auf die betroffenen Konzerne entfällt, ist nicht veröffentlicht."}},"vacancy_card":{"private_company_pct":{"value":2.07,"unit":"%","ref_date":"2022-05-15","spatial_unit":"Berlin","source":"Zensus 2022, Tabelle 4000W-3006, Berlin, Stichtag 15.5.2022","tag":"V"},"berlin_pct":{"value":2.02,"unit":"%","ref_date":"2022-05-15","spatial_unit":"Berlin","source":"Zensus 2022, Tabelle 4000W-3006, Berlin, Stichtag 15.5.2022","tag":"V"},"implied_vacant_of_222000":{"value":4600,"unit":"Wohnungen","ref_date":"2022-05-15","spatial_unit":"Berlin","source":"I (2,07 % x 222.000)","tag":"I"},"district_range_caveat":"Bezirk-Spanne 1,1-2,9 % beruht auf kleinen Zellen, hier nicht gezeigt.","text":"Stehen bei den Konzernen Wohnungen leer? Kaum mehr als anderswo: 2,1 % bei privaten Wohnungsunternehmen, 2,0 % in ganz Berlin (Zensus, 15.5.2022; Leerstand wegen Sanierung eingerechnet). Bei gleicher Quote wären das etwa 4.600 der 222.000. Nicht gemessen: Verdrängung aus bewohnten Wohnungen."},"quotes_both_sides":[{"side":"Initiative","text":"nicht gegen Neubau","source":"docs/research/sonnetB_enteignen_supply.md","tag":"S"},{"side":"AöR-Konzept","text":"nach einer Konsolidierungsphase sind auch eigene Neubauprojekte … denkbar","source":"DW & Co. enteignen, AöR-Konzept","tag":"V"},{"side":"IMK Policy Brief 225","text":"Neubau in großem Stil ist hier der einzige Weg","source":"IMK Policy Brief 225, 2026","tag":"V"},{"side":"DIW aktuell 126","text":"schafft keine zusätzliche Wohnung","source":"DIW aktuell 126, 05.10.2026","tag":"V"},{"side":"Sondervotum Expertenkommission","text":"nicht belegt und eher unplausibel","source":"Expertenkommission Vergesellschaftung, Abschlussbericht, 27.06.2023","tag":"V"}]}},"secondary_items":{"pestel_deficit":{"value":58000,"unit":"Wohnungen","ref_date":"2026-08","spatial_unit":"Berlin","source":"Pestel Bau-Monitor 2026 (für BDB)","tag":"S"},"bulwiengesa_office_conversion":{"value":30000,"unit":"Wohnungen","ref_date":"2025","spatial_unit":"Berlin","source":"bulwiengesa/Berlin Hyp Kurzstudie 2025","tag":"S"},"campaign_vacancy_threshold":{"value":[10,20],"unit":"%","ref_date":"2023-2024","spatial_unit":"Berlin","source":"docs/research/sonnetB_enteignen_supply.md (taz.de/verfassungsblog.de, unverifiziert)","tag":"S"},"vonovia_halt":{"text":"Vonovia-CEO Luka Mucic stoppt laut Presseberichten neue Berliner Bauprojekte nach Fertigstellung der laufenden.","source":"docs/research/sonnet2_transfers_allocation.md (boerse-express.com, Nov 2026)","tag":"S","ref_date":"2026-11","spatial_unit":"Berlin"}},"bezirk_tables":{"headline_gap":{"unit":"Wohnungen","tag":"I","source":"docs/research/stage3a_gap_report.md §7 (Definition ii: census-anchored Bevölkerungswachstum 9.5.2011-31.12.2025 ÷ Mikrozensus-Haushaltsgröße 2024 je Bezirk, minus Fertigstellungen 2012-2025)","ref_date":"2011-05-09/2025-12-31","values":{"Mitte":3800,"Friedrichshain-Kreuzberg":-4500,"Pankow":5200,"Charlottenburg-Wilmersdorf":7100,"Spandau":6000,"Steglitz-Zehlendorf":1000,"Tempelhof-Schöneberg":2800,"Neukölln":-1700,"Treptow-Köpenick":-1800,"Marzahn-Hellersdorf":3500,"Lichtenberg":6800,"Reinickendorf":2700,"Berlin":32000},"sensitivity_range_berlin":{"floor":16000,"ceiling":44000}}}}},"warnings":[]};
+</script>
+<script>
+/* ---- app.js ---- */
+/* Shared helpers for die-luecke.html. Plain ES2020, globals only (no modules).
+   Exposes window.DL = {fmt, tagBadge, tooltip, waffle, lineChart, smallMultiples, KINDS}. */
+(function () {
+  "use strict";
+  const NF = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
+
+  /** fmt(n, digits?) -> German formatted number ("1.000", "1,8"). null/NaN -> "–". */
+  function fmt(n, digits) {
+    if (n === null || n === undefined || Number.isNaN(+n)) return "–";
+    if (digits !== undefined) return new Intl.NumberFormat("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n);
+    return NF.format(n);
+  }
+
+  const TAG_TITLES = { V: "verifiziert (Quelle geprüft)", S: "Schätzung", I: "Indiz / unbestätigt" };
+  /** tagBadge(tag) -> HTML string. V is unobtrusive, S and I visibly marked. */
+  function tagBadge(tag) {
+    if (!tag) return "";
+    const t = String(tag).toUpperCase();
+    return `<span class="tag tag-${t}" title="${TAG_TITLES[t] || t}">${t}</span>`;
+  }
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function ttHtml(d) {
+    const val = typeof d.value === "number" ? fmt(d.value) : esc(d.value);
+    return `<div class="tt-value">${val}${d.unit ? " " + esc(d.unit) : ""}${tagBadge(d.tag)}</div>` +
+      (d.label ? `<div>${esc(d.label)}</div>` : "") +
+      `<div class="tt-meta">${[d.ref_date, d.spatial_unit].filter(Boolean).map(esc).join(" · ")}</div>` +
+      (d.source ? `<div class="tt-meta">Quelle: ${esc(d.source)}</div>` : "");
+  }
+  function showTip(d, x, y) {
+    const tip = document.getElementById("tooltip");
+    tip.innerHTML = ttHtml(d);
+    tip.hidden = false;
+    const r = tip.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(x + 12, innerWidth - r.width - 8)) + "px";
+    tip.style.top = Math.max(8, Math.min(y + 12, innerHeight - r.height - 8)) + "px";
+  }
+  function hideTip() { document.getElementById("tooltip").hidden = true; }
+
+  /** tooltip(el, info) -- info: {value, unit, ref_date, spatial_unit, source, tag, label?} or a function(event)->info.
+      Hover, focus and tap all work. Returns el. */
+  function tooltip(el, info) {
+    const get = (ev) => (typeof info === "function" ? info(ev) : info);
+    el.addEventListener("pointermove", (ev) => showTip(get(ev), ev.clientX, ev.clientY));
+    el.addEventListener("pointerleave", hideTip);
+    el.addEventListener("focus", () => { const r = el.getBoundingClientRect(); showTip(get(null), r.left, r.bottom); });
+    el.addEventListener("blur", hideTip);
+    return el;
+  }
+  document.addEventListener("pointerdown", (ev) => { if (!ev.target.closest("[data-tip]")) hideTip(); });
+
+  const KINDS = ["stock", "built", "owner", "freed", "permit"];
+
+  /** waffle(container, {squares:[{n, kind, info?}], outlines:[{n, label, strength:'strong'|'weak'}], perSquare=1000, cols=10, size?})
+      kinds: stock | built | owner | freed | permit. n is in dwellings; squares = round(n/perSquare).
+      Outlines are drawn as a rectangle-ish contour around the first ceil(n/perSquare) cells (reading order).
+      Returns {svg, cells, update(newSquares)}. */
+  function waffle(container, opts) {
+    const o = Object.assign({ squares: [], outlines: [], perSquare: 1000, cols: 10 }, opts);
+    const root = d3.select(container);
+    root.selectAll("*").remove();
+    const width = Math.min(container.clientWidth || 320, 480);
+    const gap = 2;
+    const size = o.size || Math.floor((width - gap * (o.cols - 1)) / o.cols);
+    const step = size + gap;
+
+    function expand(sq) {
+      const cells = [];
+      sq.forEach((s) => {
+        const k = Math.round(s.n / o.perSquare);
+        for (let i = 0; i < k; i++) cells.push({ kind: s.kind, info: s.info, n: s.n });
+      });
+      return cells;
+    }
+    let cells = expand(o.squares);
+    const maxCells = Math.max(cells.length, ...o.outlines.map((l) => Math.ceil(l.n / o.perSquare)), 1);
+    const rows = Math.ceil(maxCells / o.cols);
+    const svg = root.append("svg")
+      .attr("viewBox", `0 0 ${o.cols * step} ${rows * step + 4}`)
+      .attr("width", "100%").attr("role", "img")
+      .attr("aria-label", `Waffeldiagramm, 1 Quadrat = ${fmt(o.perSquare)} Wohnungen`);
+    const g = svg.append("g").attr("transform", "translate(1,1)");
+    const xy = (i) => [(i % o.cols) * step, Math.floor(i / o.cols) * step];
+
+    function draw(cs, animate) {
+      const sel = g.selectAll("rect.cell").data(cs);
+      sel.exit().transition().duration(animate ? 250 : 0).attr("opacity", 0).remove();
+      const entered = sel.enter().append("rect").attr("class", "cell").attr("rx", 2)
+        .attr("width", size - 1).attr("height", size - 1).attr("data-tip", "")
+        .attr("x", (d, i) => xy(i)[0]).attr("y", (d, i) => xy(i)[1])
+        .attr("opacity", animate ? 0 : 1);
+      const all = entered.merge(sel).attr("class", (d) => `cell m-${d.kind}`);
+      (animate ? all.transition().duration(250) : all)
+        .attr("x", (d, i) => xy(i)[0]).attr("y", (d, i) => xy(i)[1]).attr("opacity", 1);
+      all.each(function (d) { if (d.info && !this._tt) { this._tt = 1; tooltip(this, () => d3.select(this).datum().info); } });
+    }
+    draw(cells, false);
+
+    // track the tallest extent across all outlines so later (shorter) outlines
+    // never shrink the viewBox below an earlier (taller) one's label/contour.
+    let viewH = rows * step;
+    o.outlines.forEach((l) => {
+      const k = Math.ceil(l.n / o.perSquare);
+      const full = Math.floor(k / o.cols), rem = k % o.cols, W = o.cols * step - gap, h = step;
+      // contour: full rows block plus partial last row
+      let p = `M0,0H${W}V${full * h - (full ? gap : 0)}`;
+      if (rem) p += `H${rem * step - gap}V${(full + 1) * h - gap}H0Z`; else p += `H0Z`;
+      g.append("path").attr("class", `waffle-outline ${l.strength === "weak" ? "weak" : ""}`).attr("d", p).attr("transform", "translate(-.5,-.5)");
+      if (l.label) {
+        g.append("text").attr("class", "waffle-label").attr("text-anchor", "end")
+          .attr("x", W).attr("y", (full + (rem ? 1 : 0)) * h + 10).text(l.label);
+        viewH = Math.max(viewH, (full + (rem ? 1 : 0)) * h + 14);
+      }
+    });
+    svg.attr("viewBox", `0 0 ${o.cols * step} ${viewH}`);
+    return { svg: svg.node(), cells, update(sq) { cells = expand(sq); draw(cells, true); } };
+  }
+
+  /** lineChart(container, series, opts)
+      series: [{key, label, color (CSS var or hex), values:[{x:Number(year), y:Number, info?}]}] (two lines expected)
+      opts: {height=220, yLabel, fillGap:[keyA,keyB] (shade where A>B), gapLabel, okLabel='Bau hat Schritt gehalten', estimatedFrom?:year}
+      Returns svg node. Crosshair tooltip shows all series at the hovered year. */
+  function lineChart(container, series, opts) {
+    const o = Object.assign({ height: 220, okLabel: "Bau hat Schritt gehalten" }, opts);
+    const root = d3.select(container); root.selectAll("*").remove();
+    const width = Math.max(container.clientWidth || 320, 260);
+    const m = { t: 12, r: 12, b: 24, l: 44 };
+    const xs = series.flatMap((s) => s.values.map((v) => v.x));
+    const ys = series.flatMap((s) => s.values.map((v) => v.y));
+    const x = d3.scaleLinear().domain(d3.extent(xs)).range([m.l, width - m.r]);
+    const y = d3.scaleLinear().domain([Math.min(0, d3.min(ys)), d3.max(ys) || 1]).nice().range([o.height - m.b, m.t]);
+    const svg = root.append("svg").attr("viewBox", `0 0 ${width} ${o.height}`).attr("width", "100%");
+    svg.append("g").attr("class", "grid").attr("transform", `translate(${m.l},0)`)
+      .call(d3.axisLeft(y).ticks(4).tickSize(-(width - m.l - m.r)).tickFormat("")).select(".domain").remove();
+    svg.append("g").attr("class", "axis").attr("transform", `translate(0,${o.height - m.b})`)
+      .call(d3.axisBottom(x).ticks(Math.min(6, xs.length)).tickFormat(d3.format("d")));
+    svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`)
+      .call(d3.axisLeft(y).ticks(4).tickFormat((d) => fmt(d))).select(".domain").remove();
+
+    if (o.fillGap) {
+      const [a, b] = o.fillGap.map((k) => series.find((s) => s.key === k));
+      if (a && b) {
+        const bm = new Map(b.values.map((v) => [v.x, v.y]));
+        const pts = a.values.filter((v) => bm.has(v.x)).map((v) => ({ x: v.x, a: v.y, b: bm.get(v.x) }));
+        svg.append("path").attr("class", "gap-area").attr("fill", a.color)
+          .attr("d", d3.area().x((d) => x(d.x)).y0((d) => y(d.b)).y1((d) => y(Math.max(d.a, d.b)))(pts));
+        const last = pts[pts.length - 1];
+        if (last) svg.append("text").attr("class", "chart-label").attr("x", width - m.r).attr("y", m.t + 10)
+          .attr("text-anchor", "end").text(last.a > last.b ? (o.gapLabel || "") : o.okLabel);
+      }
+    }
+    const line = d3.line().x((d) => x(d.x)).y((d) => y(d.y));
+    series.forEach((s) => {
+      svg.append("path").attr("class", "line").attr("stroke", s.color).attr("d", line(s.values));
+      const l = s.values[s.values.length - 1];
+      if (l) svg.append("circle").attr("cx", x(l.x)).attr("cy", y(l.y)).attr("r", 3.5).attr("fill", s.color);
+    });
+    const cross = svg.append("line").attr("stroke", "var(--ink-3)").attr("y1", m.t).attr("y2", o.height - m.b).attr("visibility", "hidden");
+    const hit = svg.append("rect").attr("x", m.l).attr("y", 0).attr("width", width - m.l - m.r).attr("height", o.height)
+      .attr("fill", "transparent").attr("data-tip", "").node();
+    tooltip(hit, (ev) => {
+      if (!ev) return { value: "" };
+      const pt = d3.pointer(ev, svg.node());
+      const yr = Math.round(x.invert(pt[0] * (width / svg.node().getBoundingClientRect().width)));
+      cross.attr("x1", x(yr)).attr("x2", x(yr)).attr("visibility", "visible");
+      const rows = series.map((s) => { const v = s.values.find((d) => d.x === yr); return `${s.label}: ${v ? fmt(v.y) : "–"}`; });
+      const first = series[0].values.find((d) => d.x === yr);
+      return Object.assign({ value: yr, label: rows.join(" · ") }, first && first.info);
+    });
+    hit.addEventListener("pointerleave", () => cross.attr("visibility", "hidden"));
+    return svg.node();
+  }
+
+  /** smallMultiples(container, data, opts)
+      data: [{id, title, series:[...same as lineChart]}]; opts passed to lineChart (height default 120), shared y domain if opts.sharedY.
+      Returns array of svg nodes. */
+  function smallMultiples(container, data, opts) {
+    const o = Object.assign({ height: 120 }, opts);
+    const root = d3.select(container); root.selectAll("*").remove();
+    const grid = root.append("div").attr("class", "sm-grid");
+    return data.map((d) => {
+      const cell = grid.append("div").attr("class", "sm-cell");
+      cell.append("h3").text(d.title);
+      return lineChart(cell.append("div").node(), d.series, o);
+    });
+  }
+
+  // theme toggle: cycles explicit light/dark on the root element; system default when untouched
+  function initTheme() {
+    const btn = document.getElementById("theme-toggle");
+    if (!btn) return;
+    const isDark = () => {
+      const t = document.documentElement.dataset.theme;
+      return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    };
+    const label = () => { btn.textContent = isDark() ? "Hell" : "Dunkel"; };
+    btn.addEventListener("click", () => {
+      document.documentElement.dataset.theme = isDark() ? "light" : "dark";
+      try { localStorage.setItem("dl-theme", document.documentElement.dataset.theme); } catch (e) {}
+      label();
+    });
+    try { const s = localStorage.getItem("dl-theme"); if (s) document.documentElement.dataset.theme = s; } catch (e) {}
+    label();
+  }
+
+  window.DL = { fmt, tagBadge, tooltip, waffle, lineChart, smallMultiples, KINDS };
+  document.addEventListener("DOMContentLoaded", initTheme);
+})();
+
+/* ---- partA.js ---- */
+// Part A (Wohnungsbilanz). Teil 1: zwei Runden, Bezirk-Vergleich, zwei Regler.
+(function () {
+  "use strict";
+
+  function ready(fn) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
+    else fn();
+  }
+
+  ready(init);
+
+  function init() {
+    var root = document.getElementById("part-a-root");
+    if (!root) return;
+    var DATA = window.DATA || { panel: [], levers: {} };
+    var L = DATA.levers || {};
+    var fmt = window.DL.fmt, tagBadge = window.DL.tagBadge, tooltip = window.DL.tooltip;
+
+    var UEBERNOMMEN_REVEAL =
+      "Rund 20.000 Wohnungen kauften die landeseigenen Gesellschaften 2021–2025. " +
+      "Darin wohnten schon Menschen. Zusätzlich untergebracht: praktisch niemand. " +
+      "Die Felder färben sich um, keins kommt dazu.";
+    var UEBERNOMMEN_HINT = "Wohnungen, die den Besitzer wechselten.";
+
+    root.innerHTML =
+      '<div class="dl-rounds">' +
+      '<section class="dl-round" id="round1"></section>' +
+      '<section class="dl-round" id="round2"></section>' +
+      "</div>" +
+      '<section class="dl-bezirk" id="bezirk-section"></section>' +
+      '<section class="dl-dials" id="dials-section"></section>' +
+      '<section class="dl-caveats" id="part-a-caveats"></section>';
+
+    buildRound({
+      container: document.getElementById("round1"),
+      idPrefix: "r1",
+      roundKey: "roundA",
+      round: L.roundA,
+      step: 10000,
+      withIdentity: true,
+    });
+    buildRound({
+      container: document.getElementById("round2"),
+      idPrefix: "r2",
+      roundKey: "roundB",
+      round: L.roundB,
+      step: 10000,
+      withIdentity: false,
+    });
+
+    buildBezirkSection(document.getElementById("bezirk-section"), DATA);
+    buildDials(document.getElementById("dials-section"), L.dials || {});
+    buildCaveats(document.getElementById("part-a-caveats"), (L.partB && L.partB.caveats) || []);
+
+    // ---- Round builder (shared mechanic for Round 1 and Round 2) ----
+    function buildRound(cfg) {
+      var c = cfg.container;
+      if (!c || !cfg.round) return;
+      var round = cfg.round;
+      var budget = round.arrivals.value;
+      var taps = buildTapList(cfg.roundKey, round);
+      var alloc = {}; // key -> allocated amount (guess, in people)
+      taps.forEach(function (t) { alloc[t.key] = 0; });
+
+      c.innerHTML =
+        '<h3>' + esc(round.label) + "</h3>" +
+        '<p class="dl-frame">' + esc(round.frame_text || "") + "</p>" +
+        '<p class="dl-budget">Zu verteilen: <strong>' + fmt(budget) + "</strong> " + esc(round.arrivals.unit) +
+        tagBadge(round.arrivals.tag) + ' <span id="' + cfg.idPrefix + '-remaining"></span></p>' +
+        '<div class="dl-taps" id="' + cfg.idPrefix + '-taps"></div>' +
+        '<button type="button" class="dl-commit" id="' + cfg.idPrefix + '-commit" disabled>Festlegen</button>' +
+        '<div class="dl-ledger" id="' + cfg.idPrefix + '-ledger" hidden></div>';
+
+      tooltip(c.querySelector(".dl-budget strong"), {
+        value: budget, unit: round.arrivals.unit, ref_date: round.arrivals.ref_date,
+        spatial_unit: round.arrivals.spatial_unit, source: round.arrivals.source, tag: round.arrivals.tag,
+      });
+
+      var tapsRoot = document.getElementById(cfg.idPrefix + "-taps");
+      taps.forEach(function (t) {
+        var row = document.createElement("div");
+        row.className = "dl-tap";
+        row.innerHTML =
+          '<div class="dl-tap-label">' + esc(t.label) + (t.hint ? '<span class="dl-tap-hint">' + esc(t.hint) + "</span>" : "") + "</div>" +
+          '<div class="dl-tap-controls">' +
+          '<button type="button" class="dl-step-minus" aria-label="weniger">−</button>' +
+          '<input type="number" class="dl-tap-input" step="' + cfg.step + '" value="0" inputmode="numeric">' +
+          '<button type="button" class="dl-step-plus" aria-label="mehr">+</button>' +
+          "</div>" +
+          '<div class="dl-tap-reveal" hidden></div>';
+        tapsRoot.appendChild(row);
+        var input = row.querySelector(".dl-tap-input");
+        var minus = row.querySelector(".dl-step-minus");
+        var plus = row.querySelector(".dl-step-plus");
+        function setVal(v) {
+          alloc[t.key] = v;
+          input.value = v;
+          updateRemaining();
+        }
+        minus.addEventListener("click", function () { setVal(alloc[t.key] - cfg.step); });
+        plus.addEventListener("click", function () { setVal(alloc[t.key] + cfg.step); });
+        input.addEventListener("change", function () {
+          var v = parseInt(input.value, 10);
+          setVal(Number.isFinite(v) ? v : 0);
+        });
+        t._row = row;
+      });
+
+      var remainingEl = document.getElementById(cfg.idPrefix + "-remaining");
+      var commitBtn = document.getElementById(cfg.idPrefix + "-commit");
+
+      function sumAlloc() {
+        return taps.reduce(function (s, t) { return s + (alloc[t.key] || 0); }, 0);
+      }
+      function updateRemaining() {
+        var remaining = budget - sumAlloc();
+        remainingEl.textContent = "Rest: " + fmt(remaining);
+        commitBtn.disabled = remaining !== 0;
+      }
+      updateRemaining();
+
+      commitBtn.addEventListener("click", function () {
+        commitBtn.disabled = true;
+        taps.forEach(function (t) { revealTap(t, alloc[t.key]); });
+        var ledger = document.getElementById(cfg.idPrefix + "-ledger");
+        ledger.hidden = false;
+        ledger.innerHTML = cfg.withIdentity ? identityHtml(round.identity) : overlapHtml(round);
+      });
+    }
+
+    function buildTapList(roundKey, round) {
+      if (roundKey === "roundA") {
+        return Object.keys(round.taps).map(function (key) {
+          var t = Object.assign({ key: key }, round.taps[key]);
+          if (key === "uebernommen") { t.hint = UEBERNOMMEN_HINT; t.extraReveal = UEBERNOMMEN_REVEAL; }
+          return t;
+        });
+      }
+      // Round 2: synthesize a tap list from the roundB fields.
+      var list = [];
+      list.push(Object.assign({ key: "stock_change", label: "Neu gebaut / Bestand" }, round.stock_change,
+        { note: "+" + fmt(round.stock_change.value) + " Whg. ≈ " + fmt(Math.round(round.stock_change.value * 1.79 / 1000) * 1000) + " Menschen" }));
+      list.push(Object.assign({ key: "unterkuenfte_change", label: "In Unterkünften" }, round.unterkuenfte_change,
+        { note: "+" + fmt(round.unterkuenfte_change.value) + " Personen" }));
+      list.push(Object.assign({ key: "uebernommen", label: "Übernommen", hint: UEBERNOMMEN_HINT, extraReveal: UEBERNOMMEN_REVEAL },
+        round.uebernommen.persons,
+        { note: "≈" + fmt(round.uebernommen.dwellings.value) + " Whg., 0 Menschen", dwellings: round.uebernommen.dwellings }));
+      list.push({ key: "gar_nicht_gekommen", label: "Gar nicht gekommen", value: null, unit: "Personen",
+        note: "nicht messbar", tag: "I" });
+      return list;
+    }
+
+    function revealTap(t, guess) {
+      var row = t._row;
+      var reveal = row.querySelector(".dl-tap-reveal");
+      reveal.hidden = false;
+      var guessHtml = '<div class="dl-tap-guess">Ihre Schätzung: ' + fmt(guess) + "</div>";
+      var noteHtml = '<div class="dl-tap-note">' + esc(t.note || "") + " " + tagBadge(t.tag) + "</div>";
+      var extraHtml = t.extraReveal ? '<div class="dl-tap-extra">' + esc(t.extraReveal) + "</div>" : "";
+      reveal.innerHTML = guessHtml + noteHtml + extraHtml;
+      if (typeof t.value === "number") {
+        tooltip(reveal.querySelector(".dl-tap-note"), {
+          value: t.value, unit: t.unit, ref_date: t.ref_date, spatial_unit: t.spatial_unit,
+          source: t.source, tag: t.tag, label: t.label,
+        });
+      }
+    }
+
+    function identityHtml(identity) {
+      var d = identity.dwellings, ppH = identity.persons_per_household;
+      var persons = Math.round(d.value * ppH.value);
+      return '<p class="dl-identity"><span class="dl-formula">' + esc(identity.formula) + ' Haushalte</span> × ' +
+        fmt(ppH.value, 2) + " = " + fmt(persons) + " Menschen (" + esc(identity.label) + ")" +
+        tagBadge(d.tag) + "</p>";
+    }
+
+    function overlapHtml(round) {
+      var pct = round.overlap_pct;
+      return '<p class="dl-overlap">' + esc(round.overlap_caveat) + " (" + fmt(pct.value) + " %" + tagBadge(pct.tag) + ")</p>";
+    }
+
+    // ---- Bezirk picker + basis toggle + line chart + vacancy small multiples ----
+    function buildBezirkSection(c, DATA) {
+      if (!c) return;
+      var panel = DATA.panel || [];
+      var bezirke = Array.from(new Set(panel.map(function (r) { return r.bezirk; }))).sort();
+      // Put "Berlin" first.
+      bezirke = bezirke.filter(function (b) { return b !== "Berlin"; });
+      bezirke.unshift("Berlin");
+
+      c.innerHTML =
+        '<h3>Je Bezirk: Bedarf und Bautätigkeit</h3>' +
+        '<div class="dl-controls">' +
+        '<label for="bezirk-select">Bezirk</label>' +
+        '<select id="bezirk-select"></select>' +
+        '<fieldset class="dl-basis-toggle" id="basis-toggle">' +
+        '<legend>Bevölkerungsbasis</legend>' +
+        '<label><input type="radio" name="basis" value="census" checked> Zensus-basiert</label>' +
+        '<label><input type="radio" name="basis" value="register"> Melderegister</label>' +
+        "</fieldset>" +
+        "</div>" +
+        '<div class="chart-wrap" id="bezirk-chart"></div>' +
+        '<p class="dl-chart-note" id="bezirk-chart-note"></p>' +
+        '<h3>Leerstand je Bezirk, 2011 vs. 2022</h3>' +
+        '<div id="vacancy-sm"></div>';
+
+      var select = document.getElementById("bezirk-select");
+      bezirke.forEach(function (b) {
+        var opt = document.createElement("option");
+        opt.value = b; opt.textContent = b === "Berlin" ? "Berlin (gesamt)" : b;
+        select.appendChild(opt);
+      });
+
+      function rowsFor(b) {
+        return panel.filter(function (r) { return r.bezirk === b; }).sort(function (a, c2) { return a.year - c2.year; });
+      }
+
+      function render() {
+        var b = select.value;
+        var basis = (document.querySelector('input[name="basis"]:checked') || {}).value || "census";
+        var rows = rowsFor(b);
+        if (!rows.length) return;
+        var base = rows[0];
+        var baseHh = base.hh_size || 1.79;
+        var cumCompleted = 0, cumNeed = 0;
+        var needSeries = [], builtSeries = [];
+        rows.forEach(function (r) {
+          cumCompleted += r.completions || 0;
+          var pop = basis === "register" ? r.population_register : r.population_census_basis;
+          var popBase = basis === "register" ? base.population_register : base.population_census_basis;
+          var hh = r.hh_size || baseHh;
+          var dwellingsNeed = (pop - popBase) / hh;
+          needSeries.push({ x: r.year, y: Math.round(dwellingsNeed), info: {
+            value: Math.round(dwellingsNeed), unit: "Wohnungen (Bedarf, kumuliert)", ref_date: String(r.year),
+            spatial_unit: b, source: "berlin_panel.csv", tag: r.estimated ? "S" : "V",
+          } });
+          builtSeries.push({ x: r.year, y: Math.round(cumCompleted), info: {
+            value: Math.round(cumCompleted), unit: "Wohnungen (gebaut, kumuliert)", ref_date: String(r.year),
+            spatial_unit: b, source: "F II 2 Baufertigstellungen", tag: "V",
+          } });
+        });
+        var series = [
+          { key: "need", label: "Bedarf (Bevölkerung ÷ Haushaltsgröße)", color: "var(--k-need)", values: needSeries },
+          { key: "built", label: "Gebaut (kumuliert)", color: "var(--k-built)", values: builtSeries },
+        ];
+        window.DL.lineChart(document.getElementById("bezirk-chart"), series, {
+          fillGap: ["need", "built"],
+          gapLabel: "Lücke",
+          okLabel: "Bau hat Schritt gehalten",
+        });
+
+        // 1 square = 1.000 annotation at the 2019 peak.
+        var peak2019 = builtSeries.find(function (p) { return p.x === 2019; });
+        var noteEl = document.getElementById("bezirk-chart-note");
+        if (peak2019 && noteEl) {
+          var squares = Math.round(peak2019.y / 1000);
+          noteEl.textContent = "2019 kumuliert: " + fmt(squares) + " Felder (1 Feld = 1.000 Wohnungen).";
+        } else if (noteEl) {
+          noteEl.textContent = "";
+        }
+
+        // Vacancy small multiples: 2011 vs 2022 per Bezirk (fixed set, not just the selected one).
+        var smData = (bezirke.length ? bezirke : []).filter(function (bb) { return bb !== "Berlin"; }).map(function (bb) {
+          var bRows = rowsFor(bb).filter(function (r) { return r.year === 2011 || r.year === 2022; });
+          var values = bRows.map(function (r) {
+            return { x: r.year, y: +(r.vacancy_rate * 100).toFixed(2), info: {
+              value: +(r.vacancy_rate * 100).toFixed(2), unit: "% Leerstand", ref_date: String(r.year),
+              spatial_unit: bb, source: "Zensus " + r.year, tag: "V",
+            } };
+          });
+          return { id: bb, title: bb, series: [{ key: "vac", label: "Leerstand %", color: "var(--k-freed)", values: values }] };
+        });
+        window.DL.smallMultiples(document.getElementById("vacancy-sm"), smData, { height: 100, sharedY: true });
+      }
+
+      select.addEventListener("change", render);
+      c.querySelectorAll('input[name="basis"]').forEach(function (r) { r.addEventListener("change", render); });
+      render();
+    }
+
+    // ---- Dials: Reserve + Haushaltsgröße -> bridge total, dispatched as dl:need ----
+    function buildDials(c, dials) {
+      if (!c || !dials.reserve) return;
+      var r = dials.reserve, h = dials.hh_size, bridge = dials.bridge;
+      c.innerHTML =
+        '<h3>Zwei Regler: wie viel Platz soll Berlin vorhalten?</h3>' +
+        '<p class="dl-bridge-text">' + esc(bridge.bridge_text) + "</p>" +
+        '<div class="dl-dial">' +
+        '<label for="dial-reserve">Reserve: <output id="dial-reserve-out"></output> %</label>' +
+        '<input type="range" id="dial-reserve" min="' + r.min + '" max="' + r.max + '" step="0.1" value="' + r.default + '">' +
+        "</div>" +
+        '<div class="dl-dial">' +
+        '<label for="dial-hhsize">Haushaltsgröße: <output id="dial-hhsize-out"></output> Personen/Haushalt</label>' +
+        '<input type="range" id="dial-hhsize" min="' + h.min + '" max="' + h.max + '" step="0.01" value="' + h.default + '">' +
+        "</div>" +
+        '<button type="button" id="dial-reset">Senatswerte</button>' +
+        '<dl class="dl-bridge-components">' +
+        '<div><dt>Reserve</dt><dd id="bridge-reserve"></dd></div>' +
+        '<div><dt>Entlastung</dt><dd id="bridge-relief"></dd></div>' +
+        '<div><dt>Ersatz</dt><dd id="bridge-replacement"></dd></div>' +
+        '<div class="dl-bridge-total"><dt>Gesamt</dt><dd id="bridge-total"></dd></div>' +
+        "</dl>" +
+        '<p class="dl-bridge-excludes">Nicht enthalten: ' + esc(bridge.excludes) + "</p>";
+
+      var reserveInput = document.getElementById("dial-reserve");
+      var hhInput = document.getElementById("dial-hhsize");
+      var reserveOut = document.getElementById("dial-reserve-out");
+      var hhOut = document.getElementById("dial-hhsize-out");
+      var stock = bridge.stock_2025_for_reserve_calc.value;
+
+      function reserveComponentAt(reservePct) {
+        // calibrated so reserve=3% -> 41000, linear in stock*reserve/100
+        return Math.round(stock * (reservePct / 100) * (bridge.reserve_component.value / (stock * (r.senate_value.value / 100))));
+      }
+      function reliefComponentAt(hhSize) {
+        // inversely proportional to hh_size, anchored at hh_size=1.77 -> 77000
+        return Math.round(bridge.relief_component.value * (h.senate_value.value / hhSize));
+      }
+
+      function compute() {
+        var reserveVal = parseFloat(reserveInput.value);
+        var hhVal = parseFloat(hhInput.value);
+        reserveOut.textContent = fmt(reserveVal, 1);
+        hhOut.textContent = fmt(hhVal, 2);
+        var reserveComp = reserveComponentAt(reserveVal);
+        var reliefComp = reliefComponentAt(hhVal);
+        var replacementComp = bridge.replacement_component.value;
+        var total = reserveComp + reliefComp + replacementComp;
+        document.getElementById("bridge-reserve").textContent = fmt(reserveComp) + " Wohnungen";
+        document.getElementById("bridge-relief").textContent = fmt(reliefComp) + " Wohnungen";
+        document.getElementById("bridge-replacement").textContent = fmt(replacementComp) + " Wohnungen";
+        document.getElementById("bridge-total").textContent = fmt(total) + " Wohnungen";
+        window.DL.need = total;
+        window.dispatchEvent(new CustomEvent("dl:need", { detail: { total: total, reserve: reserveComp, hhSize: reliefComp } }));
+      }
+
+      reserveInput.addEventListener("input", compute);
+      hhInput.addEventListener("input", compute);
+      document.getElementById("dial-reset").addEventListener("click", function () {
+        reserveInput.value = r.default; hhInput.value = h.default; compute();
+      });
+      compute();
+    }
+
+    function buildCaveats(c, caveats) {
+      if (!c) return;
+      c.innerHTML = "<h3>Drei Vorbehalte</h3><ol>" +
+        caveats.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ol>";
+    }
+
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+      });
+    }
+  }
+})();
+
+/* ---- partB.js ---- */
+// Part B (Teil 2: Die Hebel). Waffle + lever cards + Vergesellschaften panel.
+// Plain ES2020, globals only. Reads window.DATA.levers.partB and window.DL.
+(function () {
+  "use strict";
+  function ready(fn) {
+    if (document.readyState !== "loading") fn(); else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    const root = document.getElementById("part-b-root");
+    if (!root) return;
+    const DL = window.DL;
+    const DATA = window.DATA || {};
+    const pb = (DATA.levers && DATA.levers.partB) || {};
+    if (!pb.levers) { root.innerHTML = '<p class="placeholder">Keine Hebel-Daten.</p>'; return; }
+    const L = pb.levers;
+    const V = L.vergesellschaften || {};
+    const FALLBACK_NEED = 137000;
+
+    // ---- layout scaffold --------------------------------------------------
+    root.innerHTML = `
+      <div class="pb-waffle-wrap">
+        <div id="pb-waffle" class="pb-waffle" aria-live="polite"></div>
+        <p class="pb-totals">
+          Gezogen: <strong id="pb-total">0 Felder</strong>
+          gegen Bedarf <span id="pb-outline-need">–</span> und Senats-Ziel <span id="pb-outline-senate">–</span>.
+        </p>
+        <p class="pb-note">Nur volle (durchgezogene) Felder zählen gegen die Umrisse. Umgefärbte, schraffierte und gepunktete Felder bewegen den Umriss nicht.</p>
+      </div>
+      <div id="pb-cards" class="pb-cards"></div>
+      <section id="pb-verg" class="pb-panel" aria-labelledby="pb-verg-h">
+        <h3 id="pb-verg-h">Vergesellschaften</h3>
+      </section>
+      <section id="pb-secondary" class="pb-secondary" aria-label="Weitere, unsichere Zahlen"></section>
+    `;
+
+    // ---- state --------------------------------------------------------
+    const state = {
+      need: (window.DL && window.DL.need) || FALLBACK_NEED,
+      pulled: {},            // key -> true/false for simple levers
+      neuRate: "tempo_2025", // tempo_2025 | tempo_2019 | lwu
+      neuYears: 1,           // 1 | 5 | 10
+      leerstandMode: "market_active", // market_active | ceiling
+      kostenT: 0,            // 0..1 slider position between compensation low/high -> DIW low/high
+    };
+
+    window.addEventListener("dl:need", (e) => {
+      if (e && e.detail && typeof e.detail.total === "number") { state.need = e.detail.total; renderAll(); }
+    });
+
+    function v(x) { return x && typeof x === "object" && "value" in x ? x.value : x; }
+    function info(x, extra) {
+      if (!x || typeof x !== "object") return undefined;
+      return Object.assign({ value: x.value, unit: x.unit, ref_date: x.ref_date, spatial_unit: x.spatial_unit, source: x.source, tag: x.tag }, extra);
+    }
+
+    // ---- lever definitions ---------------------------------------------
+    // Each returns { squares: [{n, kind, info}], counted: dwellings-that-count-to-outline, totalAll: dwellings pulled }
+    function neuBauenSquares() {
+      const rate = L.neu_bauen[state.neuRate];
+      const n = v(rate) * state.neuYears * 1000;
+      return [{ n, kind: "built", info: info(rate, { label: `Neu bauen × ${state.neuYears} Jahr(e)` }) }];
+    }
+    function ueberhangSquares() {
+      const f = L.ueberhang.felder;
+      return [{ n: v(f) * 1000, kind: "permit", info: info(f, { label: "Überhang (genehmigt, nicht gebaut)" }) }];
+    }
+    function leerstandSquares() {
+      const f = L.leerstand[state.leerstandMode];
+      return [{ n: v(f) * 1000, kind: "freed", info: info(f, { label: "Leerstand aktivieren" }) }];
+    }
+    function ferienwohnungenSquares() {
+      const f = L.ferienwohnungen.active;
+      return [{ n: v(f) * 1000, kind: "freed", info: info(f, { label: "Ferienwohnungen zurückholen" }) }];
+    }
+    function zweckentfremdungSquares() {
+      const f = L.zweckentfremdung_gesamt.felder;
+      return [{ n: v(f) * 1000, kind: "freed", info: info(f, { label: "Zweckentfremdung gesamt" }) }];
+    }
+    function aufstockenSquares() {
+      const s = L.aufstocken_umnutzen.supermaerkte, b = L.aufstocken_umnutzen.buero;
+      const sMid = (v(s)[0] + v(s)[1]) / 2;
+      return [
+        { n: sMid * 1000, kind: "built", info: info(s, { label: "Aufstocken Supermärkte (Mittelwert)" }) },
+        { n: v(b) * 1000, kind: "built", info: info(b, { label: "Büro-Umnutzung" }) },
+      ];
+    }
+    function sozialbindungenSquares() {
+      const f = L.sozialbindungen.felder; // -46
+      return [{ n: Math.abs(v(f)) * 1000, kind: "owner", info: info(f, { label: "Sozialbindungen laufen aus (reverse)" }), reverse: true }];
+    }
+    function vergesellschaftenSquares() {
+      const u = V.umfang && V.umfang.value;
+      return [{ n: v(u) * 1000, kind: "owner", info: info(u, { label: "Vergesellschaften: Umfang" }) }];
+    }
+
+    const LEVER_ORDER = [
+      { key: "leerstand", title: "Leerstand aktivieren", squares: leerstandSquares, counts: false },
+      { key: "ferienwohnungen", title: "Ferienwohnungen", squares: ferienwohnungenSquares, counts: false },
+      { key: "zweckentfremdung_gesamt", title: "Zweckentfremdung gesamt", squares: zweckentfremdungSquares, counts: false },
+      { key: "vergesellschaften", title: "Vergesellschaften", squares: vergesellschaftenSquares, counts: false, isVerg: true },
+      { key: "sozialbindungen", title: "Sozialbindungen", squares: sozialbindungenSquares, counts: false, reverse: true },
+      { key: "aufstocken_umnutzen", title: "Aufstocken / umnutzen", squares: aufstockenSquares, counts: true },
+      { key: "ueberhang", title: "Überhang fertigstellen", squares: ueberhangSquares, counts: false },
+      { key: "neu_bauen", title: "Neu bauen", squares: neuBauenSquares, counts: true },
+    ];
+
+    // ---- waffle -----------------------------------------------------------
+    let waffleHandle = null;
+    const waffleEl = document.getElementById("pb-waffle");
+
+    function buildSquares() {
+      const stockTotal = v(pb.stock_squares) * 1000;
+      let recolourOwner = 0, recolourFreed = 0, built = 0, permit = 0;
+      let counted = 0, allPulled = 0;
+      const extra = []; // built + permit cells, appended beyond stock
+      const recolour = []; // owner + freed cells, drawn from within stock
+
+      LEVER_ORDER.forEach((lv) => {
+        if (!state.pulled[lv.key]) return;
+        const sqs = lv.squares();
+        sqs.forEach((s) => {
+          allPulled += lv.reverse ? -s.n : s.n;
+          if (s.kind === "built") { built += s.n; counted += s.n; extra.push(s); }
+          else if (s.kind === "permit") { permit += s.n; extra.push(s); }
+          else if (s.kind === "owner") { recolourOwner += s.n; recolour.push(s); }
+          else if (s.kind === "freed") { recolourFreed += s.n; recolour.push(s); }
+        });
+      });
+
+      const recolourTotal = Math.min(recolourOwner + recolourFreed, stockTotal);
+      const stockRemain = Math.max(stockTotal - recolourTotal, 0);
+      const squares = [
+        ...recolour,
+        { n: stockRemain, kind: "stock" },
+        ...extra,
+      ];
+      return { squares, counted, allPulled };
+    }
+
+    function outlineSquares() {
+      return [
+        { n: Math.max(state.need, 0), label: `Bedarf: ${DL.fmt(Math.round(state.need))}`, strength: "strong" },
+        { n: v(pb.senate_need), label: `Senat: ${DL.fmt(v(pb.senate_need))}`, strength: "weak" },
+      ];
+    }
+
+    function renderWaffle() {
+      const { squares, counted, allPulled } = buildSquares();
+      if (!waffleHandle) {
+        waffleHandle = DL.waffle(waffleEl, { squares, outlines: outlineSquares(), perSquare: 1000, cols: 10 });
+      } else {
+        waffleHandle.update(squares);
+      }
+      document.getElementById("pb-total").textContent = `${DL.fmt(Math.round(counted / 1000))} von ${DL.fmt(Math.round(allPulled / 1000))} Feldern`;
+      document.getElementById("pb-outline-need").textContent = `${DL.fmt(Math.round(state.need / 1000))} Felder (Bedarf)`;
+      document.getElementById("pb-outline-senate").textContent = `${DL.fmt(Math.round(v(pb.senate_need) / 1000))} Felder (Senat)`;
+    }
+
+    // ---- lever cards --------------------------------------------------
+    const cardsEl = document.getElementById("pb-cards");
+
+    function feldText(lv) {
+      switch (lv.key) {
+        case "neu_bauen": {
+          const rate = L.neu_bauen[state.neuRate];
+          return `${DL.fmt(v(rate) * state.neuYears, 1)} Tsd. Wohnungen (${state.neuYears} Jahr${state.neuYears > 1 ? "e" : ""} × ${DL.fmt(v(rate), 1)} Tsd./Jahr)`;
+        }
+        case "ueberhang":
+          return `${DL.fmt(v(L.ueberhang.felder), 1)} Tsd. Wohnungen genehmigt, nicht gebaut`;
+        case "leerstand":
+          return `${DL.fmt(v(L.leerstand[state.leerstandMode]), 1)} Tsd. Wohnungen`;
+        case "ferienwohnungen":
+          return `${DL.fmt(v(L.ferienwohnungen.active), 1)} Tsd. aktive Inserate`;
+        case "zweckentfremdung_gesamt":
+          return `${DL.fmt(v(L.zweckentfremdung_gesamt.felder), 1)} Tsd. Wohnungen seit 2014 zurückgeführt`;
+        case "aufstocken_umnutzen": {
+          const s = v(L.aufstocken_umnutzen.supermaerkte), b = v(L.aufstocken_umnutzen.buero);
+          return `${DL.fmt(s[0])}–${DL.fmt(s[1])} Tsd. (Supermärkte) + ~${DL.fmt(b)} Tsd. (Büro)`;
+        }
+        case "sozialbindungen":
+          return `${DL.fmt(v(L.sozialbindungen.felder))} Tsd. Wohnungen bis 2034`;
+        case "vergesellschaften":
+          return `${DL.fmt(v(V.umfang.value))} Tsd. Wohnungen, neue Wohnungen: 0`;
+        default: return "";
+      }
+    }
+
+    function tempoText(lv) {
+      switch (lv.key) {
+        case "neu_bauen": return "beobachtet pro Jahr";
+        case "ueberhang": return "Stand 31.12.2025 (dotted: nicht gebaut)";
+        case "leerstand": return "CBRE-empirica 2025 / Zensus 2022";
+        case "ferienwohnungen": return "Stand 19.09.2026";
+        case "zweckentfremdung_gesamt": return "2014–2025-06-30";
+        case "aufstocken_umnutzen": return "Schätzung, keine Bautätigkeit gemessen";
+        case "sozialbindungen": return "laufen bis 2034 aus";
+        case "vergesellschaften": return "einmalig, Stichtag 31.12.2021";
+        default: return "";
+      }
+    }
+
+    function werZahltText(key) {
+      const map = {
+        neu_bauen: L.neu_bauen.wer_zahlt,
+        ueberhang: "Bauherr (privat/LWU)",
+        leerstand: "Eigentümer",
+        ferienwohnungen: "Vermieter / Plattform",
+        zweckentfremdung_gesamt: "Vermieter, Bußgeld bei Verstoß",
+        aufstocken_umnutzen: "Eigentümer / Investor",
+        sozialbindungen: "entfällt (läuft aus)",
+        vergesellschaften: "Land Berlin (Entschädigung, siehe Panel)",
+      };
+      return map[key] || "–";
+    }
+
+    function quelleOf(key) {
+      const map = {
+        neu_bauen: L.neu_bauen.quelle, ueberhang: L.ueberhang.quelle, leerstand: L.leerstand.quelle,
+        ferienwohnungen: L.ferienwohnungen.quelle, zweckentfremdung_gesamt: L.zweckentfremdung_gesamt.quelle,
+        aufstocken_umnutzen: L.aufstocken_umnutzen.quelle, sozialbindungen: L.sozialbindungen.quelle,
+        vergesellschaften: (V.umfang && V.umfang.value && V.umfang.value.source) || "",
+      };
+      return map[key] || "";
+    }
+
+    function cardControls(lv) {
+      if (lv.key === "neu_bauen") {
+        return `
+          <div class="pb-chip-row" role="group" aria-label="Zeitraum">
+            ${[1, 5, 10].map((y) => `<button type="button" class="pb-chip" data-years="${y}" aria-pressed="${state.neuYears === y}">${y} J.</button>`).join("")}
+          </div>
+          <div class="pb-chip-row" role="group" aria-label="Rate">
+            <button type="button" class="pb-chip" data-rate="tempo_2025" aria-pressed="${state.neuRate === "tempo_2025"}">2025 (11,0/J.)</button>
+            <button type="button" class="pb-chip" data-rate="tempo_2019" aria-pressed="${state.neuRate === "tempo_2019"}">2019 (19/J.)</button>
+            <button type="button" class="pb-chip" data-rate="lwu" aria-pressed="${state.neuRate === "lwu"}">LWU (4,7/J.)</button>
+          </div>`;
+      }
+      if (lv.key === "leerstand") {
+        return `<div class="pb-chip-row" role="group" aria-label="Leerstand-Basis">
+          <button type="button" class="pb-chip" data-leerstand="market_active" aria-pressed="${state.leerstandMode === "market_active"}">marktaktiv (5,4)</button>
+          <button type="button" class="pb-chip" data-leerstand="ceiling" aria-pressed="${state.leerstandMode === "ceiling"}">Obergrenze (11,8)</button>
+        </div>`;
+      }
+      return "";
+    }
+
+    function cardHtml(lv) {
+      const tag = lv.key === "vergesellschaften" ? "V" : (lv.key === "aufstocken_umnutzen" ? "S" : "V");
+      const pulled = !!state.pulled[lv.key];
+      return `
+        <article id="lever-${lv.key}" class="pb-card ${lv.reverse ? "pb-card-reverse" : ""}" data-key="${lv.key}">
+          <h4>${lv.title} ${DL.tagBadge(tag)}</h4>
+          <dl class="pb-fields">
+            <div><dt>Felder</dt><dd>${feldText(lv)}</dd></div>
+            <div><dt>Tempo</dt><dd>${tempoText(lv)}</dd></div>
+            <div><dt>Wer zahlt</dt><dd>${werZahltText(lv.key)}</dd></div>
+            <div><dt>Quelle</dt><dd>${quelleOf(lv.key)}</dd></div>
+          </dl>
+          ${cardControls(lv)}
+          <button type="button" class="pb-pull" data-pull data-key="${lv.key}" aria-pressed="${pulled}">${pulled ? "Zurücklegen" : "Ziehen"}</button>
+        </article>`;
+    }
+
+    function unterkuenfteCardHtml() {
+      const f = L.unterkuenfte.felder;
+      return `
+        <article id="lever-unterkuenfte" class="pb-card pb-card-marker">
+          <h4>Unterkünfte ${DL.tagBadge(f.tag)}</h4>
+          <dl class="pb-fields">
+            <div><dt>Felder</dt><dd>${DL.fmt(v(f))} Tsd. Personen (Bedarfsmarker)</dd></div>
+            <div><dt>Tempo</dt><dd>Stand 31.01.2025</dd></div>
+            <div><dt>Wer zahlt</dt><dd>Land Berlin</dd></div>
+            <div><dt>Quelle</dt><dd>${L.unterkuenfte.quelle}</dd></div>
+          </dl>
+          <p class="pb-note">${L.unterkuenfte.note} Keine Wohnungen, kein Feld im Waffeldiagramm.</p>
+        </article>`;
+    }
+
+    function renderCards() {
+      cardsEl.innerHTML = LEVER_ORDER.filter((l) => !l.isVerg).map(cardHtml).join("")
+        + unterkuenfteCardHtml();
+
+      cardsEl.querySelectorAll("[data-pull]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const key = btn.dataset.key;
+          state.pulled[key] = !state.pulled[key];
+          renderAll();
+        });
+      });
+      cardsEl.querySelectorAll("[data-years]").forEach((btn) => btn.addEventListener("click", () => {
+        state.neuYears = +btn.dataset.years; renderAll();
+      }));
+      cardsEl.querySelectorAll("[data-rate]").forEach((btn) => btn.addEventListener("click", () => {
+        state.neuRate = btn.dataset.rate; renderAll();
+      }));
+      cardsEl.querySelectorAll("[data-leerstand]").forEach((btn) => btn.addEventListener("click", () => {
+        state.leerstandMode = btn.dataset.leerstand; renderAll();
+      }));
+
+      // tooltips on the Felder values
+      cardsEl.querySelectorAll(".pb-card").forEach((card) => {
+        const key = card.dataset.key;
+        const lv = LEVER_ORDER.find((l) => l.key === key);
+        if (!lv) return;
+        const dd = card.querySelector(".pb-fields dd");
+        if (dd) { dd.setAttribute("data-tip", ""); DL.tooltip(dd, () => (lv.squares()[0] && lv.squares()[0].info) || { value: "" }); }
+      });
+    }
+
+    // ---- Vergesellschaften panel ---------------------------------------
+    const vergEl = document.getElementById("pb-verg");
+
+    function kostenLerp() {
+      const lo = v(V.kosten.diw_annual_low_bn_eur), hi = v(V.kosten.diw_annual_high_bn_eur);
+      return lo + (hi - lo) * state.kostenT;
+    }
+
+    function renderVerg() {
+      const pulled = !!state.pulled.vergesellschaften;
+      vergEl.innerHTML = `
+        <h3 id="pb-verg-h">Vergesellschaften</h3>
+        <div class="pb-verg-grid">
+          <section class="pb-verg-field">
+            <h4>Umfang ${DL.tagBadge(V.umfang.value.tag)}</h4>
+            <p>${V.umfang.text}</p>
+            <p class="pb-meta">${DL.fmt(v(V.umfang.share_all_dwellings), 1)} % aller Wohnungen ${DL.tagBadge(V.umfang.share_all_dwellings.tag)},
+              ${DL.fmt(v(V.umfang.share_rental_stock), 1)} % des Mietwohnungsbestands ${DL.tagBadge(V.umfang.share_rental_stock.tag)}</p>
+            <button type="button" class="pb-pull" data-pull data-key="vergesellschaften" aria-pressed="${pulled}">${pulled ? "Zurücklegen" : "Ziehen"}</button>
+          </section>
+          <section class="pb-verg-field">
+            <h4>Vergabe <span class="pb-axis-note">eigene Achse, nicht Teil der Waffel</span></h4>
+            <div id="pb-vergabe-axis" class="pb-vergabe-axis" aria-label="Jährlicher Netto-Zuwachs WBS-Vermietungen"></div>
+            <p>${V.vergabe.text}</p>
+            <p class="pb-meta">${V.vergabe.lock_in_text}</p>
+          </section>
+          <section class="pb-verg-field">
+            <h4>Miete</h4>
+            <p>${V.miete.text}</p>
+          </section>
+          <section class="pb-verg-field">
+            <h4>Kosten</h4>
+            <p>${V.kosten.text}</p>
+            <label class="pb-slider-label" for="pb-kosten-slider">Jährliche Belastung Landeshaushalt (DIW-Spanne)</label>
+            <input type="range" id="pb-kosten-slider" min="0" max="100" value="${Math.round(state.kostenT * 100)}">
+            <output id="pb-kosten-out">${DL.fmt(kostenLerp(), 1)} Mrd. €/Jahr</output>
+          </section>
+          <section class="pb-verg-field">
+            <h4>Bauen?</h4>
+            <button type="button" class="pb-chip" id="pb-bauen-toggle" aria-expanded="false">Zitate anzeigen</button>
+            <div id="pb-bauen-quotes" hidden>
+              ${V.bauen.quotes.map((q) => `<p class="pb-quote"><strong>${q.side}:</strong> „${q.text}" ${DL.tagBadge(q.tag)}</p>`).join("")}
+              <p class="pb-meta">${V.bauen.risk_band.text}</p>
+            </div>
+          </section>
+          <section class="pb-verg-field">
+            <h4>Leerstand bei den Konzernen</h4>
+            <p>${V.vacancy_card.text}</p>
+          </section>
+          <section class="pb-verg-field pb-verg-quotes">
+            <h4>Stimmen</h4>
+            ${V.quotes_both_sides.map((q) => `<p class="pb-quote"><strong>${q.side}:</strong> „${q.text}" ${DL.tagBadge(q.tag)}</p>`).join("")}
+          </section>
+        </div>`;
+
+      vergEl.querySelectorAll("[data-pull]").forEach((btn) => btn.addEventListener("click", () => {
+        state.pulled.vergesellschaften = !state.pulled.vergesellschaften; renderAll();
+      }));
+      const slider = vergEl.querySelector("#pb-kosten-slider");
+      slider.addEventListener("input", () => {
+        state.kostenT = +slider.value / 100;
+        vergEl.querySelector("#pb-kosten-out").textContent = `${DL.fmt(kostenLerp(), 1)} Mrd. €/Jahr`;
+      });
+      const bauenBtn = vergEl.querySelector("#pb-bauen-toggle");
+      bauenBtn.addEventListener("click", () => {
+        const box = vergEl.querySelector("#pb-bauen-quotes");
+        const open = box.hidden;
+        box.hidden = !open;
+        bauenBtn.setAttribute("aria-expanded", String(open));
+      });
+
+      renderVergabeAxis();
+    }
+
+    function renderVergabeAxis() {
+      const el = document.getElementById("pb-vergabe-axis");
+      if (!el || !window.d3) return;
+      el.innerHTML = "";
+      const lo = v(V.vergabe.net_flow_low), hi = v(V.vergabe.net_flow_high), campaign = v(V.vergabe.campaign_gross_quote);
+      const width = Math.max(el.clientWidth || 300, 240), height = 56, m = { l: 8, r: 8 };
+      const max = Math.max(campaign, hi) * 1.1;
+      const x = d3.scaleLinear().domain([0, max]).range([m.l, width - m.r]);
+      const svg = d3.select(el).append("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%");
+      svg.append("line").attr("x1", m.l).attr("x2", width - m.r).attr("y1", 40).attr("y2", 40).attr("stroke", "var(--rule)");
+      svg.append("rect").attr("x", x(lo)).attr("y", 30).attr("width", x(hi) - x(lo)).attr("height", 10)
+        .attr("fill", "var(--k-owner)").attr("rx", 2).attr("data-tip", "");
+      DL.tooltip(svg.select("rect").node(), { value: `${DL.fmt(lo)}–${DL.fmt(hi)}`, unit: "Wohnungen/Jahr (netto)", source: V.vergabe.net_flow_low.source, tag: "I" });
+      svg.append("line").attr("x1", x(campaign)).attr("x2", x(campaign)).attr("y1", 24).attr("y2", 46).attr("stroke", "var(--ink-3)").attr("stroke-dasharray", "2 2");
+      svg.append("text").attr("x", x(campaign)).attr("y", 18).attr("text-anchor", "middle").attr("class", "chart-label").text(`Initiative: ${DL.fmt(campaign)}`);
+      svg.append("text").attr("x", m.l).attr("y", 54).attr("class", "chart-label").text("0");
+      svg.append("text").attr("x", width - m.r).attr("y", 54).attr("text-anchor", "end").attr("class", "chart-label").text(DL.fmt(max));
+    }
+
+    // ---- secondary items -------------------------------------------------
+    function renderSecondary() {
+      const sec = pb.secondary_items || {};
+      const el = document.getElementById("pb-secondary");
+      const rows = Object.keys(sec).map((k) => {
+        const it = sec[k];
+        if (it.tag !== "S" && it.tag !== "I") return "";
+        const label = it.text || `${Array.isArray(it.value) ? it.value.join("–") : DL.fmt(it.value)} ${it.unit || ""}`;
+        return `<li>${DL.tagBadge(it.tag)} ${label} <span class="pb-meta">${it.source || ""}</span></li>`;
+      }).filter(Boolean).join("");
+      el.innerHTML = rows ? `<h3>Weitere Zahlen, unsicher</h3><ul class="pb-secondary-list">${rows}</ul>` : "";
+    }
+
+    function renderAll() {
+      renderWaffle();
+      renderCards();
+      renderVerg();
+      renderSecondary();
+    }
+
+    renderAll();
+  });
+})();
+
+</script>
+</body>
+</html>

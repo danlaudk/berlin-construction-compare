@@ -90,7 +90,7 @@
       return [{ n: Math.abs(v(f)) * 1000, kind: "owner", info: info(f, { label: "Sozialbindungen laufen aus (reverse)" }), reverse: true }];
     }
     function vergesellschaftenSquares() {
-      const u = V.umfang && V.umfang.umfang;
+      const u = V.umfang && V.umfang.value;
       return [{ n: v(u) * 1000, kind: "owner", info: info(u, { label: "Vergesellschaften: Umfang" }) }];
     }
 
@@ -181,7 +181,7 @@
         case "sozialbindungen":
           return `${DL.fmt(v(L.sozialbindungen.felder))} Tsd. Wohnungen bis 2034`;
         case "vergesellschaften":
-          return `${DL.fmt(v(V.umfang.umfang))} Tsd. Wohnungen, neue Wohnungen: 0`;
+          return `${DL.fmt(v(V.umfang.value))} Tsd. Wohnungen, neue Wohnungen: 0`;
         default: return "";
       }
     }
@@ -219,7 +219,7 @@
         neu_bauen: L.neu_bauen.quelle, ueberhang: L.ueberhang.quelle, leerstand: L.leerstand.quelle,
         ferienwohnungen: L.ferienwohnungen.quelle, zweckentfremdung_gesamt: L.zweckentfremdung_gesamt.quelle,
         aufstocken_umnutzen: L.aufstocken_umnutzen.quelle, sozialbindungen: L.sozialbindungen.quelle,
-        vergesellschaften: (V.umfang && V.umfang.umfang && V.umfang.umfang.source) || "",
+        vergesellschaften: (V.umfang && V.umfang.value && V.umfang.value.source) || "",
       };
       return map[key] || "";
     }
@@ -322,7 +322,7 @@
         <h3 id="pb-verg-h">Vergesellschaften</h3>
         <div class="pb-verg-grid">
           <section class="pb-verg-field">
-            <h4>Umfang ${DL.tagBadge(v(V.umfang.umfang).tag)}</h4>
+            <h4>Umfang ${DL.tagBadge(V.umfang.value.tag)}</h4>
             <p>${V.umfang.text}</p>
             <p class="pb-meta">${DL.fmt(v(V.umfang.share_all_dwellings), 1)} % aller Wohnungen ${DL.tagBadge(V.umfang.share_all_dwellings.tag)},
               ${DL.fmt(v(V.umfang.share_rental_stock), 1)} % des Mietwohnungsbestands ${DL.tagBadge(V.umfang.share_rental_stock.tag)}</p>
