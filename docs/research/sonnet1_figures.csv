@@ -1,0 +1,42 @@
+category,metric,value,unit,region,source,ref_date,tag
+vacancy_owner_type,Leerstandsquote Insgesamt (dwelling-weighted avg of 12 Bezirke),2.02,%,Berlin,Zensus2022 table 4000W-3006 (own calc from raw dwelling counts),2022-05-15,VERIFIED
+vacancy_owner_type,Leerstandsquote Privatperson/-en,1.97,%,Berlin,Zensus2022 table 4000W-3006 (own calc),2022-05-15,VERIFIED
+vacancy_owner_type,Leerstandsquote Gemeinschaft von Wohnungseigentümer/-innen,1.98,%,Berlin,Zensus2022 table 4000W-3006 (own calc),2022-05-15,VERIFIED
+vacancy_owner_type,Leerstandsquote Wohnungsgenossenschaft,1.07,%,Berlin,Zensus2022 table 4000W-3006 (own calc),2022-05-15,VERIFIED
+vacancy_owner_type,Leerstandsquote Kommune/kommunales Wohnungsunternehmen,1.91,%,Berlin,Zensus2022 table 4000W-3006 (own calc),2022-05-15,VERIFIED
+vacancy_owner_type,Leerstandsquote Privatwirtschaftliches Wohnungsunternehmen,2.07,%,Berlin,Zensus2022 table 4000W-3006 (own calc),2022-05-15,VERIFIED
+vacancy_owner_type,Leerstandsquote Anderes privatwirtschaftliches Unternehmen,3.42,%,Berlin,Zensus2022 table 4000W-3006 (own calc),2022-05-15,VERIFIED
+vacancy_owner_type,Leerstandsquote Bund oder Land,4.77,%,Berlin,Zensus2022 table 4000W-3006 (own calc),2022-05-15,VERIFIED
+vacancy_owner_type,Leerstandsquote Organisation ohne Erwerbszweck,2.43,%,Berlin,Zensus2022 table 4000W-3006 (own calc),2022-05-15,VERIFIED
+vacancy_owner_type_official,Leerstandsquote (official kennziffer) Privatwirtschaftliches Wohnungsunternehmen - Mitte,2.0,%,Mitte,Zensus2022 table 4000W-0018,2022-05-15,VERIFIED
+vacancy_owner_type_official,Leerstandsquote Privatwirtschaftliches Wohnungsunternehmen - range across 12 Bezirke,1.1-2.9,%,Berlin (per Bezirk range),Zensus2022 table 4000W-0018,2022-05-15,VERIFIED
+vacancy_owner_type_official,Leerstandsquote Kommune/kommunales Wohnungsunternehmen - range across 12 Bezirke,1.1-3.6,%,Berlin (per Bezirk range),Zensus2022 table 4000W-0018,2022-05-15,VERIFIED
+vacancy_owner_type_official,Leerstandsquote Wohnungsgenossenschaft - range across 12 Bezirke,0.6-1.9,%,Berlin (per Bezirk range),Zensus2022 table 4000W-0018,2022-05-15,VERIFIED
+vacancy_owner_type_official,Leerstandsquote Privatperson/-en - range across 12 Bezirke,1.3-2.5,%,Berlin (per Bezirk range),Zensus2022 table 4000W-0018,2022-05-15,VERIFIED
+vacancy_owner_type_official,Leerstandsquote Bund oder Land - range across 12 Bezirke (small base, volatile),1.1-11.0,%,Berlin (per Bezirk range),Zensus2022 table 4000W-0018,2022-05-15,VERIFIED
+vacancy_overall,Leerstandsquote Insgesamt Berlin per Bezirk (4000W-0001),1.4-2.4,%,Berlin (per Bezirk range),Zensus2022 table 4000W-0001,2022-05-15,VERIFIED
+vacancy_disclosure,Deutsche Wohnen Leerstand (self-reported),0.7,%,Berlin portfolio,company disclosure (provided by team),~2023-2024,SECONDARY (per task framing; not independently re-verified this session)
+vacancy_disclosure,BBU member average Leerstand (self-reported),1.6,%,Berlin BBU members,BBU disclosure (provided by team),~2023-2024,SECONDARY (per task framing; not independently re-verified this session)
+construction_cost_cap,WFB 2023 Baukosten-Obergrenze Modell 1 (geschlossene Finanzierung ohne Fremdkapital bei 20% EK),4500,EUR/m² Wohnfläche,Berlin,WFB 2023 (Senatsverwaltung Stadtentwicklung Bauen Wohnen),2023-,SECONDARY (WebSearch summary of WFB 2023 text; not independently re-rendered)
+construction_cost_cap,WFB 2023 Baukosten-Obergrenze variant requiring no additional external financing,4200,EUR/m² Wohnfläche,Berlin,WFB 2023,2023-,SECONDARY
+construction_cost_cap,WFB 2023 verlorener Baukostenzuschuss (Fördermodell 1 only),1800,EUR/m² geförderte Wohnfläche,Berlin,WFB 2023,2023-,SECONDARY
+construction_cost_cap,WFB 2023 zinsloses Baudarlehen Fördermodell 1,3500,EUR/m² förderfähige Wohnfläche,Berlin,WFB 2023,2023-,SECONDARY
+construction_cost_cap,WFB 2023 zinsloses Baudarlehen Fördermodell 2,5300,EUR/m² förderfähige Wohnfläche,Berlin,WFB 2023,2023-,SECONDARY
+construction_cost_benchmark,Baupreise Wohngebäude Neubau Q4 2024 (major German cities, not Berlin-specific),4473,EUR/m²,Germany major cities,Destatis-derived market commentary (WebSearch summary),2024-Q4,SECONDARY (not independently re-verified against Destatis table)
+construction_cost_benchmark,Baupreisindex Wohngebäude konventionelle Bauart (2021=100),130.8,index points,Germany,Destatis Baupreisindex,2024-Q4,SECONDARY (WebSearch summary of Destatis page; index only, not €/m²)
+lwu_completions,Neubau-Fertigstellungen LWU (6 Unternehmen) 2023,4599,Wohnungen,Berlin (6 Landeseigene Wohnungsunternehmen),KoopV-Jahresbericht 2024 PDF (Senatsverwaltung/inberlinwohnen.de),2023,VERIFIED (read directly from PDF table)
+lwu_completions,Neubau-Fertigstellungen LWU (6 Unternehmen) 2024,3276,Wohnungen,Berlin (6 Landeseigene Wohnungsunternehmen),KoopV-Jahresbericht 2024 PDF,2024,VERIFIED (read directly from PDF table)
+lwu_completions,Anteil mietpreis-/belegungsgebunden an Neubau 2023,38.7,%,Berlin LWU,KoopV-Jahresbericht 2024 PDF,2023,VERIFIED
+lwu_completions,Anteil mietpreis-/belegungsgebunden an Neubau 2024,43.9,%,Berlin LWU,KoopV-Jahresbericht 2024 PDF,2024,VERIFIED
+lwu_completions,LWU-Gesamtinvestitionen 2023 (Neubau+Bestand, 7 Unternehmen),1.7,Mrd EUR,Berlin,WebSearch summary of Senate/press reports,2023,SECONDARY (not independently opened/verified this session)
+lwu_completions,Geplante LWU-Gesamtinvestitionen 2024,2.0+,Mrd EUR,Berlin,WebSearch summary,2024,SECONDARY
+lwu_completions,Erwartete Fertigstellung 2025,>5000,Wohnungen,Berlin LWU,KoopV-Jahresbericht 2024 PDF,2025 (forecast),VERIFIED (forecast statement read directly from PDF)
+compensation_scenario,Rechnungshof Berlin 2024 scenario low,8,Mrd EUR,Berlin,Rechnungshof Berlin 2024 (per sonnetB report),2024,SECONDARY (relayed from sonnetB_enteignen_supply.md; not independently re-opened)
+compensation_scenario,Rechnungshof Berlin 2024 scenario,11,Mrd EUR,Berlin,Rechnungshof Berlin 2024,2024,SECONDARY
+compensation_scenario,Rechnungshof Berlin 2024 scenario,29,Mrd EUR,Berlin,Rechnungshof Berlin 2024,2024,SECONDARY
+compensation_scenario,Rechnungshof Berlin 2024 scenario high,36,Mrd EUR,Berlin,Rechnungshof Berlin 2024,2024,SECONDARY
+compensation_scenario,Senat 2019/2020 Verkehrswert estimate (2020 update),39.5,Mrd EUR,Berlin,Senat von Berlin 2020 update (per sonnetB report),2020,SECONDARY
+compensation_scenario,IMK Policy Brief 225 Ertragswert estimate,13.5,Mrd EUR,Berlin (210,000 Wohnungen),IMK Policy Brief 225 (per sonnetC report),2026,SECONDARY
+compensation_scenario,Holm/Thonke/Arpagaus 2025 base-case refinanceable-from-rents sum,10.1,Mrd EUR,Berlin,Holm/Thonke/Arpagaus 2025 study (dwe_refinanz_holm_thonke_arpagaus.txt in scratchpad),2025,VERIFIED (exact sentence located and read)
+compensation_scenario,Holm/Thonke/Arpagaus 2025 stated maximum of modeled range,21,Mrd EUR,Berlin,Holm/Thonke/Arpagaus 2025 study,2025,VERIFIED (exact sentence located and read)
+assumption,Average new-build dwelling size used for €/flat conversion,70,m² Wohnfläche,Berlin,consistent with bulwiengesa/Berlin Hyp convention cited in stage3b_verify_report.md,n/a,INFERRED-ASSUMPTION

@@ -21,6 +21,7 @@ dependencies = [
     "pyarrow>=26.0.1",
     "pyjanitor<0.32",
     "python-dotenv>=1.2.4",
+    "pyyaml>=6.0.3",
     "requests>=2.34.2",
     "seaborn>=0.13.2",
     "skimpy>=0.1.1",
@@ -32,4 +33,5 @@ dependencies = [
 [dependency-groups]
 dev = [
     "ipykernel>=7.4.0",
+    "pytest>=9.2.0",
 ]

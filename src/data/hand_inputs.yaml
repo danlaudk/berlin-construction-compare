@@ -1,0 +1,165 @@
+# Hand-maintained inputs for src/panel.py and src/levers.py.
+#
+# Every number here was extracted by a research agent from a primary source and is
+# recorded in docs/research/ (see `source` per item below, and the `tag` V/S/I).
+# This file exists because several of the stage-4 handoff datasets (Zensus 2011
+# Gemeindeblätter per Bezirk, A I 3 2025 district XLSX, F I 1 2025 district XLSX,
+# Zensus 2022 kleinräumige Bezirksregionen XLSX) are either PDF-only per-Bezirk
+# documents (12 separate PDFs for 2011) or were already opened and transcribed by
+# the research agents into docs/research/stage3a_gap_report.md and
+# docs/research/consolidated_findings.md. Re-downloading and re-parsing those PDFs
+# is a large effort for no gain in accuracy over numbers an agent already read
+# directly from the source and cross-checked against the official Berlin totals
+# (see stage3a_gap_report.md §1, "Berlin checks: ... Bezirk sums reproduce these
+# exactly"). Per the handoff: "Be pragmatic: a complete panel from hand-maintained
+# research tables beats a half-finished scraper."
+#
+# districts are the fixed 12-Bezirk order used throughout this repo (src/berlin.py
+# DISTRICTS); "Berlin" is the aggregate row.
+
+districts: &districts
+  - Mitte
+  - Friedrichshain-Kreuzberg
+  - Pankow
+  - Charlottenburg-Wilmersdorf
+  - Spandau
+  - Steglitz-Zehlendorf
+  - Tempelhof-Schöneberg
+  - Neukölln
+  - Treptow-Köpenick
+  - Marzahn-Hellersdorf
+  - Lichtenberg
+  - Reinickendorf
+
+# ---------------------------------------------------------------------------
+# 1. Census-anchored population, households, dwellings, vacancy per Bezirk.
+# Census 2011 (9.5.2011) and Census 2022 (15.5.2022), read from the Zensus
+# Gemeindeblätter (2011) and the Zensus 2022 Lokale Daten Bezirksregionen
+# workbook (2022, Bezirksregionen summed to Bezirk) by the stage3a agent.
+# source: docs/research/stage3a_gap_report.md §1 Table 1 (also
+#   consolidated_findings.md §1). tag: V (all inputs read directly in a primary
+#   source; the per-Bezirk 2022 figures carry a few units of cell-key noise,
+#   noted by the agent as "differ by <=20 from the official Gemeinde totals").
+census:
+  ref_dates: {2011: "2011-05-09", 2022: "2022-05-15"}
+  source: "Zensus 2011 Gemeindeblätter (BEV/GWZ per Bezirk); Zensus 2022 Lokale Daten, Ebene Bezirksregionen, summed to Bezirk (docs/research/stage3a_gap_report.md §1)"
+  tag: V
+  by_district:
+    Mitte:                      {pop_2011: 316507, hh_2011: 180168, dw_2011: 188050, vac_2011: 7440, pop_2022: 357319, hh_2022: 205001, dw_2022: 211686, vac_2022: 4741}
+    Friedrichshain-Kreuzberg:   {pop_2011: 251226, hh_2011: 141233, dw_2011: 145673, vac_2011: 4339, pop_2022: 264032, hh_2022: 153283, dw_2022: 157558, vac_2022: 3180}
+    Pankow:                     {pop_2011: 355361, hh_2011: 198874, dw_2011: 205078, vac_2011: 6196, pop_2022: 400405, hh_2022: 218855, dw_2022: 224214, vac_2022: 4298}
+    Charlottenburg-Wilmersdorf: {pop_2011: 290741, hh_2011: 172630, dw_2011: 181166, vac_2011: 5985, pop_2022: 317006, hh_2022: 187482, dw_2022: 194165, vac_2022: 4820}
+    Spandau:                    {pop_2011: 214235, hh_2011: 110330, dw_2011: 116975, vac_2011: 5210, pop_2022: 237761, hh_2022: 121145, dw_2022: 126800, vac_2022: 3025}
+    Steglitz-Zehlendorf:        {pop_2011: 277078, hh_2011: 145405, dw_2011: 153798, vac_2011: 5780, pop_2022: 295126, hh_2022: 155286, dw_2022: 162188, vac_2022: 3920}
+    Tempelhof-Schöneberg:       {pop_2011: 316936, hh_2011: 173755, dw_2011: 180002, vac_2011: 5949, pop_2022: 331283, hh_2022: 182432, dw_2022: 186619, vac_2022: 3205}
+    Neukölln:                   {pop_2011: 298552, hh_2011: 155929, dw_2011: 161694, vac_2011: 5735, pop_2022: 305021, hh_2022: 162760, dw_2022: 167358, vac_2022: 3582}
+    Treptow-Köpenick:           {pop_2011: 237881, hh_2011: 128011, dw_2011: 131501, vac_2011: 3586, pop_2022: 275543, hh_2022: 148051, dw_2022: 151361, vac_2022: 2530}
+    Marzahn-Hellersdorf:        {pop_2011: 243893, hh_2011: 126114, dw_2011: 131654, vac_2011: 5440, pop_2022: 270007, hh_2022: 138233, dw_2022: 140977, vac_2022: 2040}
+    Lichtenberg:                {pop_2011: 252197, hh_2011: 140302, dw_2011: 144971, vac_2011: 4694, pop_2022: 290539, hh_2022: 159148, dw_2022: 163237, vac_2022: 2636}
+    Reinickendorf:               {pop_2011: 237758, hh_2011: 122185, dw_2011: 128875, vac_2011: 5923, pop_2022: 252937, hh_2022: 128678, dw_2022: 132677, vac_2022: 2723}
+  berlin: {pop_2011: 3292365, hh_2011: 1794936, dw_2011: 1869437, vac_2011: 66277, pop_2022: 3596979, hh_2022: 1960354, dw_2022: 2018840, vac_2022: 40700}
+
+# ---------------------------------------------------------------------------
+# 2. Census-anchored population per Bezirk, end-2025 (A I 3, 2025 issue, census
+# 2022 basis). source: docs/research/stage3a_gap_report.md §3. tag: V.
+pop_census_anchored_2025:
+  ref_date: "2025-12-31"
+  source: "A I 3, 2025 issue (SB_A01-03-00_2025j01_BE), census-2022 basis, Bezirk tables (docs/research/stage3a_gap_report.md §3)"
+  tag: V
+  by_district:
+    Mitte: 365741
+    Friedrichshain-Kreuzberg: 267258
+    Pankow: 411133
+    Charlottenburg-Wilmersdorf: 323712
+    Spandau: 248122
+    Steglitz-Zehlendorf: 295082
+    Tempelhof-Schöneberg: 339042
+    Neukölln: 309241
+    Treptow-Köpenick: 293681
+    Marzahn-Hellersdorf: 285222
+    Lichtenberg: 305118
+    Reinickendorf: 257225
+  berlin: 3700577
+
+# ---------------------------------------------------------------------------
+# 3. Dwelling stock (F I 1) per Bezirk, 2023 example values plus Berlin series.
+# Full 2025 per-Bezirk F I 1 XLSX was not re-downloaded this pass; Berlin-wide
+# series is V (stage1/stage3a); the 2023 per-Bezirk example values are V (stage1
+# §1, "Example district values, 31.12.2023"); per-Bezirk 2025 values are
+# estimated (I) by scaling each Bezirk's 2023 share onto the Berlin 2025 total,
+# flagged `estimated: true` in the panel.
+# source: docs/research/stage1_datasets_report.md §1; stage3a_gap_report.md §4 (Table 4b "Stock 2025").
+stock:
+  tag: V
+  source: "F I 1, Statistischer Bericht, Tabelle 2 (31.12.), census-2011 basis to 2021, census-2022 (GWZ) basis from 2021 (docs/research/stage1_datasets_report.md §1)"
+  basis_breaks: {2011: -31449, 2021: 16037}
+  berlin_by_year:
+    2011: 1871782
+    2021: 1998155
+    2022: 2028467
+    2023: 2043079
+    2024: 2058666
+    2025: 2069432
+  district_2023_example:
+    Pankow: 226992
+    Mitte: 213666
+    Reinickendorf: 133303
+  district_2025_estimate:
+    source: "docs/research/stage3a_gap_report.md §4 Table 4b 'Stock 2025' column"
+    tag: I
+    values:
+      Mitte: 215641
+      Friedrichshain-Kreuzberg: 159758
+      Pankow: 229847
+      Charlottenburg-Wilmersdorf: 197962
+      Spandau: 131091
+      Steglitz-Zehlendorf: 163167
+      Tempelhof-Schöneberg: 189637
+      Neukölln: 169790
+      Treptow-Köpenick: 161918
+      Marzahn-Hellersdorf: 146445
+      Lichtenberg: 170055
+      Reinickendorf: 134121
+    berlin: 2069432
+
+# ---------------------------------------------------------------------------
+# 4. Mikrozensus household size per Bezirk, selected years (A I 10/11, Tab. 7.4
+# in 2024/2025 issues). source: docs/research/stage3a_gap_report.md §2. tag: V.
+hh_size:
+  source: "Mikrozensus A I 10/A I 11/A VI 2, Tabelle 7.4 (Bezirk), and A I 11 j/19 Tab. 6.2/7.1-7.2 (Berlin series) (docs/research/stage3a_gap_report.md §2)"
+  tag: V
+  berlin_by_year:
+    2011: 1.754
+    2012: 1.752
+    2013: 1.752
+    2014: 1.754
+    2015: 1.745
+    2016: 1.797
+    2017: 1.793
+    2018: 1.788
+    2019: 1.789
+    2021: 1.80
+    2022: 1.84
+    2023: 1.85
+    2024: 1.85
+    2025: 1.88
+  by_district_year:
+    2011: {Mitte: 1.65, Friedrichshain-Kreuzberg: 1.64, Pankow: 1.64, Charlottenburg-Wilmersdorf: 1.64, Spandau: 1.79, Steglitz-Zehlendorf: 1.84, Tempelhof-Schöneberg: 1.76, Neukölln: 1.80, Treptow-Köpenick: 1.75, Marzahn-Hellersdorf: 1.86, Lichtenberg: 1.73, Reinickendorf: 1.91}
+    2014: {Mitte: 1.71, Friedrichshain-Kreuzberg: 1.71, Pankow: 1.65, Charlottenburg-Wilmersdorf: 1.67, Spandau: 1.72, Steglitz-Zehlendorf: 1.81, Tempelhof-Schöneberg: 1.82, Neukölln: 1.87, Treptow-Köpenick: 1.76, Marzahn-Hellersdorf: 1.85, Lichtenberg: 1.69, Reinickendorf: 1.88}
+    2019: {Mitte: 1.7, Friedrichshain-Kreuzberg: 1.7, Pankow: 1.8, Charlottenburg-Wilmersdorf: 1.7, Spandau: 1.9, Steglitz-Zehlendorf: 1.9, Tempelhof-Schöneberg: 1.8, Neukölln: 1.8, Treptow-Köpenick: 1.8, Marzahn-Hellersdorf: 1.9, Lichtenberg: 1.7, Reinickendorf: 2.0}
+    2024: {Mitte: 1.82, Friedrichshain-Kreuzberg: 1.73, Pankow: 1.86, Charlottenburg-Wilmersdorf: 1.76, Spandau: 1.96, Steglitz-Zehlendorf: 1.97, Tempelhof-Schöneberg: 1.86, Neukölln: 1.79, Treptow-Köpenick: 1.90, Marzahn-Hellersdorf: 1.93, Lichtenberg: 1.79, Reinickendorf: 2.01}
+    2025: {Mitte: 1.88, Friedrichshain-Kreuzberg: 1.74, Pankow: 1.77, Charlottenburg-Wilmersdorf: 1.77, Spandau: 1.98, Steglitz-Zehlendorf: 1.96, Tempelhof-Schöneberg: 1.89, Neukölln: 1.83, Treptow-Köpenick: 1.93, Marzahn-Hellersdorf: 1.98, Lichtenberg: 1.88, Reinickendorf: 1.98}
+
+# ---------------------------------------------------------------------------
+# 5. Zensus 2022 households / dwellings / vacancy per Bezirk — same as the
+# `census.by_district.*_2022` block above (Zensus 2022 kleinräumig,
+# Bezirksregionen summed to Bezirk, cross-checked against Gemeinde-level
+# official Berlin totals per the handoff's instruction to use Gemeinde-level
+# totals for the Berlin row). See `census` block; duplicated as zensus2022 for
+# clarity in panel.py.
+zensus2022:
+  source: "Zensus 2022, Lokale Daten Berlin, Ebene Bezirksregionen -> summed to Bezirk; Berlin row = official Gemeinde-level Zensus 2022 total (docs/research/stage3a_gap_report.md §1)"
+  tag: V
+  households_official_berlin: 1960354
+  dwellings_official_berlin: 2018840
+  vacant_official_berlin: 40700
