@@ -83,18 +83,23 @@
     const g = svg.append("g").attr("transform", "translate(1,1)");
     const xy = (i) => [(i % o.cols) * step, Math.floor(i / o.cols) * step];
 
-    function draw(cs) {
+    function draw(cs, animate) {
       const sel = g.selectAll("rect.cell").data(cs);
-      sel.exit().remove();
-      const all = sel.enter().append("rect").attr("class", "cell").attr("rx", 2)
+      sel.exit().transition().duration(animate ? 250 : 0).attr("opacity", 0).remove();
+      const entered = sel.enter().append("rect").attr("class", "cell").attr("rx", 2)
         .attr("width", size - 1).attr("height", size - 1).attr("data-tip", "")
-        .merge(sel)
         .attr("x", (d, i) => xy(i)[0]).attr("y", (d, i) => xy(i)[1])
-        .attr("class", (d) => `cell m-${d.kind}`);
+        .attr("opacity", animate ? 0 : 1);
+      const all = entered.merge(sel).attr("class", (d) => `cell m-${d.kind}`);
+      (animate ? all.transition().duration(250) : all)
+        .attr("x", (d, i) => xy(i)[0]).attr("y", (d, i) => xy(i)[1]).attr("opacity", 1);
       all.each(function (d) { if (d.info && !this._tt) { this._tt = 1; tooltip(this, () => d3.select(this).datum().info); } });
     }
-    draw(cells);
+    draw(cells, false);
 
+    // track the tallest extent across all outlines so later (shorter) outlines
+    // never shrink the viewBox below an earlier (taller) one's label/contour.
+    let viewH = rows * step;
     o.outlines.forEach((l) => {
       const k = Math.ceil(l.n / o.perSquare);
       const full = Math.floor(k / o.cols), rem = k % o.cols, W = o.cols * step - gap, h = step;
@@ -103,12 +108,13 @@
       if (rem) p += `H${rem * step - gap}V${(full + 1) * h - gap}H0Z`; else p += `H0Z`;
       g.append("path").attr("class", `waffle-outline ${l.strength === "weak" ? "weak" : ""}`).attr("d", p).attr("transform", "translate(-.5,-.5)");
       if (l.label) {
-        const t = g.append("text").attr("class", "waffle-label").attr("text-anchor", "end")
+        g.append("text").attr("class", "waffle-label").attr("text-anchor", "end")
           .attr("x", W).attr("y", (full + (rem ? 1 : 0)) * h + 10).text(l.label);
-        svg.attr("viewBox", `0 0 ${o.cols * step} ${Math.max(rows * step, (full + 1) * h + 14)}`);
+        viewH = Math.max(viewH, (full + (rem ? 1 : 0)) * h + 14);
       }
     });
-    return { svg: svg.node(), cells, update(sq) { cells = expand(sq); draw(cells); } };
+    svg.attr("viewBox", `0 0 ${o.cols * step} ${viewH}`);
+    return { svg: svg.node(), cells, update(sq) { cells = expand(sq); draw(cells, true); } };
   }
 
   /** lineChart(container, series, opts)
