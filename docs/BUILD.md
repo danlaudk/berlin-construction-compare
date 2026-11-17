@@ -99,3 +99,5 @@ The builder warns and inlines empty placeholders when the processed data files a
 - Part 1's three caveats render as the last section of Part A (after the Bezirk chart
   and the two dials), not immediately under the Round 1/2 charts; see
   `docs/research/verification_report.md` §3 (Gate 2) for the reasoning.
+
+Published Artifact: https://claude.ai/artifact/Qb9iUm75xzrZoPU1JWWrC7
