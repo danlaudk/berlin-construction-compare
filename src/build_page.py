@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "src" / "page"
 PROC = ROOT / "data" / "processed"
-OUT = ROOT / "docs" / "die-luecke.html"
+OUT = ROOT / "docs" / "index.html"
 SCRIPTS = ["app.js", "partA.js", "partB.js"]  # order matters: app.js defines window.DL
 MAX_BYTES = 16 * 1024 * 1024
 
