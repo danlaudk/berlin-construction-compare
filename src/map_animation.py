@@ -1,7 +1,7 @@
 """Build an animated, side-by-side choropleth comparing Berlin and Copenhagen.
 
 Metric: dwellings completed per 1,000 residents, by district, 2010-2025.
-Output: docs/index.html (self-contained; GitHub Pages serves docs/).
+Output: docs/karte.html (self-contained; GitHub Pages serves docs/).
 
 Run with: uv run python src/map_animation.py
 """
@@ -17,7 +17,7 @@ import plotly.graph_objects as go
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "processed"
 GEO = ROOT / "data" / "geo"
-OUT_HTML = ROOT / "docs" / "index.html"
+OUT_HTML = ROOT / "docs" / "karte.html"
 
 YEARS = list(range(2010, 2026))
 
